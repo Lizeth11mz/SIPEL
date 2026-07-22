@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
+from django.contrib.auth.forms import PasswordChangeForm
 from .models import Estudiante, Curso, Instructor, Inscripcion, Evaluacion
 
 # --- DEFINICIÓN DE OPCIONES COMUNES ---
@@ -25,6 +26,12 @@ class UsuarioForm(forms.ModelForm):
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
+class CambiarContrasenaAdminForm(PasswordChangeForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'form-control'})
+
 class EstudianteForm(forms.ModelForm):
     estado = forms.ChoiceField(
         choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')], 
@@ -33,7 +40,6 @@ class EstudianteForm(forms.ModelForm):
     
     class Meta:
         model = Estudiante
-        # Excluimos la contraseña y el campo usuario_auth para que no se muestren ni interfieran aquí
         exclude = ['contrasena', 'usuario_auth']
         widgets = {
             'usuario': forms.TextInput(attrs={'class': 'form-control'}),
@@ -47,17 +53,46 @@ class EstudianteForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Hacemos que número de documento no sea obligatorio para evitar errores de validación
         if 'numero_documento' in self.fields:
             self.fields['numero_documento'].required = False
 
     def save(self, commit=True):
         estudiante = super().save(commit=False)
-        if not estudiante.pk:
-            estudiante.contrasena = b''
+        
         if commit:
-            estudiante.save()
+            if estudiante.pk:
+                # Obtenemos dinámicamente el nombre correcto de la llave primaria de la BD (estudiante_id)
+                nombre_pk = Estudiante._meta.pk.column
+                
+                from django.db import connection
+                with connection.cursor() as cursor:
+                    cursor.execute(f"""
+                        UPDATE Estudiantes 
+                        SET usuario = %s, 
+                            nombre_completo = %s, 
+                            email = %s, 
+                            telefono = %s, 
+                            direccion = %s, 
+                            tipo_documento = %s, 
+                            estado = %s
+                        WHERE {nombre_pk} = %s
+                    """, [
+                        estudiante.usuario,
+                        estudiante.nombre_completo,
+                        estudiante.email,
+                        estudiante.telefono,
+                        estudiante.direccion,
+                        estudiante.tipo_documento,
+                        estudiante.estado,
+                        estudiante.pk
+                    ])
+            else:
+                if not estudiante.contrasena:
+                    estudiante.contrasena = b''
+                estudiante.save()
+            
             self.save_m2m()
+            
         return estudiante
 
 class CursoForm(forms.ModelForm):

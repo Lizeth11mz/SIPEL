@@ -11,10 +11,10 @@ from django.db import transaction
 from core.decorators import role_required 
 from django.contrib.auth.forms import UserCreationForm
 from django.db.models import Sum
-
+from django.contrib.auth import update_session_auth_hash
 from .utils import cifrar_dato
 from .models import Estudiante, Curso, Inscripcion, Pago, Instructor, Evaluacion
-from .forms import EstudianteForm, CursoForm, InstructorForm, InscripcionForm
+from .forms import EstudianteForm, CursoForm, InstructorForm, InscripcionForm,CambiarContrasenaAdminForm
 
 # --- VISTAS POR ROL ---
 @login_required
@@ -468,3 +468,34 @@ def eliminar_usuario(request, usuario_id):
         messages.success(request, 'Usuario eliminado correctamente')
         return redirect('inventario:gestion_usuarios')
     return render(request, 'inventario/confirmar_eliminar.html', {'usuario': usuario})
+
+@login_required
+def cambiar_contrasena_usuario(request, user_id):
+    # Buscamos al usuario al que se le cambiará la contraseña
+    usuario_obj = get_object_or_404(User, pk=user_id)
+    
+    if request.method == 'POST':
+        # Pasamos el usuario y los datos del POST al formulario
+        form = CambiarContrasenaAdminForm(user=usuario_obj, data=request.POST)
+        if form.is_valid():
+            user = form.save()
+            
+            # Si el usuario cambia su propia contraseña, esto evita que su sesión se cierre
+            if request.user.pk == user.pk:
+                update_session_auth_hash(request, user)
+                
+            messages.success(request, "¡Contraseña actualizada correctamente!")
+            
+            # Cambia esta ruta por la URL a donde quieras redirigir después de guardarla
+            return redirect('inventario:gestion_usuarios') 
+    else:
+        form = CambiarContrasenaAdminForm(user=usuario_obj)
+        
+    context = {
+        'form': form,
+        'usuario': usuario_obj,
+        'titulo': f"Cambiar Contraseña de {usuario_obj.username}"
+    }
+    
+    # Puedes usar tu plantilla genérica de formularios o una específica
+    return render(request, 'inventario/form.html', context)

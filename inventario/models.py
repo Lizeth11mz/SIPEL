@@ -17,15 +17,15 @@ class Estudiante(models.Model):
     estudiante_id = models.AutoField(primary_key=True)
     # Relación uno a uno con el usuario nativo de Django
     usuario_auth = models.OneToOneField(User, on_delete=models.CASCADE, db_column='usuario_id', null=True, blank=True)
-    usuario = models.CharField(max_length=50)
-    contrasena = models.CharField(max_length=255) 
-    nombre_completo = models.CharField(max_length=100)
-    email = models.CharField(max_length=100)
+    usuario = models.CharField(max_length=50, blank=True, null=True)
+    contrasena = models.BinaryField(blank=True, null=True) 
+    nombre_completo = models.CharField(max_length=100, blank=True, null=True)
+    email = models.CharField(max_length=100, blank=True, null=True)
     telefono = models.CharField(max_length=20, blank=True, null=True)
     direccion = models.CharField(max_length=150, blank=True, null=True)
-    tipo_documento = models.CharField(max_length=20)
-    numero_documento = models.CharField(max_length=255) 
-    fecha_registro = models.DateTimeField()
+    tipo_documento = models.CharField(max_length=20, blank=True, null=True)
+    numero_documento = models.BinaryField(blank=True, null=True) 
+    fecha_registro = models.DateTimeField(blank=True, null=True)
     estado = models.CharField(max_length=20, default='Activo', blank=True, null=True)
 
     class Meta:
@@ -35,12 +35,12 @@ class Estudiante(models.Model):
 class Instructor(models.Model):
     instructor_id = models.AutoField(primary_key=True)
     usuario_auth = models.OneToOneField(User, on_delete=models.CASCADE, db_column='usuario_id', null=True, blank=True)
-    nombre_completo = models.CharField(max_length=100)
-    especialidad = models.CharField(max_length=50)
-    cedula_profesional = models.CharField(max_length=50) 
-    usuario = models.CharField(max_length=50, unique=True)
-    contrasena = models.CharField(max_length=128) 
-    estado = models.CharField(max_length=20, default='Activo')
+    nombre_completo = models.CharField(max_length=100, blank=True, null=True)
+    especialidad = models.CharField(max_length=50, blank=True, null=True)
+    cedula_profesional = models.CharField(max_length=50, blank=True, null=True) 
+    usuario = models.CharField(max_length=50, unique=True, blank=True, null=True)
+    contrasena = models.BinaryField(blank=True, null=True) 
+    estado = models.CharField(max_length=20, default='Activo', blank=True, null=True)
 
     class Meta:
         managed = False
@@ -51,15 +51,23 @@ class Instructor(models.Model):
 @receiver(post_save, sender=Estudiante)
 def crear_user_estudiante(sender, instance, created, **kwargs):
     if created and getattr(instance, 'usuario_auth', None) is None:
-        nombres = instance.nombre_completo.split(' ', 1)
+        nombre_completo = instance.nombre_completo or ""
+        nombres = nombre_completo.split(' ', 1)
         
+        # Manejo seguro de la contraseña binaria para el auth_user de Django
+        pwd = instance.contrasena
+        if isinstance(pwd, bytes):
+            pwd_str = pwd.decode('utf-8', errors='ignore')
+        else:
+            pwd_str = str(pwd or '')
+
         # 1. Creamos el usuario en la tabla auth_user incluyendo el email
         user = User.objects.create_user(
-            username=instance.usuario,
-            password=str(instance.contrasena),
+            username=instance.usuario or f"estudiante_{instance.pk}",
+            password=pwd_str if pwd_str else "Temporal123*",
             first_name=nombres[0],
             last_name=nombres[1] if len(nombres) > 1 else "",
-            email=getattr(instance, 'email', '')
+            email=getattr(instance, 'email', '') or ''
         )
         
         # 2. Asignamos automáticamente el grupo "Estudiante"
@@ -75,10 +83,18 @@ def crear_user_estudiante(sender, instance, created, **kwargs):
 @receiver(post_save, sender=Instructor)
 def crear_user_instructor(sender, instance, created, **kwargs):
     if created and getattr(instance, 'usuario_auth', None) is None:
-        nombres = instance.nombre_completo.split(' ', 1)
+        nombre_completo = instance.nombre_completo or ""
+        nombres = nombre_completo.split(' ', 1)
+        
+        pwd = instance.contrasena
+        if isinstance(pwd, bytes):
+            pwd_str = pwd.decode('utf-8', errors='ignore')
+        else:
+            pwd_str = str(pwd or '')
+
         user = User.objects.create_user(
-            username=instance.usuario,
-            password=str(instance.contrasena),
+            username=instance.usuario or f"instructor_{instance.pk}",
+            password=pwd_str if pwd_str else "Temporal123*",
             first_name=nombres[0],
             last_name=nombres[1] if len(nombres) > 1 else ""
         )
@@ -137,7 +153,7 @@ class Pago(models.Model):
     inscripcion = models.ForeignKey(Inscripcion, on_delete=models.DO_NOTHING, db_column='inscripcion_id')
     fecha_pago = models.DateTimeField(auto_now_add=True)
     metodo_pago = models.CharField(max_length=30)
-    referencia_pago = models.BinaryField()
+    referencia_pago = models.BinaryField(blank=True, null=True)
     monto = models.DecimalField(max_digits=10, decimal_places=2)
 
     class Meta:
