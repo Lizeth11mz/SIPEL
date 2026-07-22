@@ -1,0 +1,73 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Editar Curso{% endblock %}
+
+{% block content %}
+<style>
+    .edit-container { 
+        max-width: 600px; 
+        margin: 40px auto; 
+        background: #161b22; 
+        padding: 30px; 
+        border-radius: 12px; 
+        border: 1px solid #30363d; 
+        color: #e6edf3; 
+    }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; color: #8b949e; font-size: 0.9em; }
+    .form-control { 
+        width: 100%; 
+        padding: 12px; 
+        border-radius: 8px; 
+        border: 1px solid #30363d; 
+        background: #0d1117; 
+        color: white; 
+        box-sizing: border-box;
+    }
+    .btn-save { 
+        background-color: #238636; 
+        border: none; 
+        padding: 12px 20px; 
+        color: white; 
+        border-radius: 8px; 
+        font-weight: bold; 
+        cursor: pointer; 
+        width: 100%; 
+        margin-top: 10px;
+    }
+    .btn-save:hover { background-color: #2ea043; }
+    .btn-cancel { display: block; text-align: center; margin-top: 15px; color: #8b949e; text-decoration: none; }
+</style>
+
+<div class="edit-container">
+    <h2 style="margin-top: 0; color: #ffffff;">✎ Editar Curso: {{ curso.nombre_curso }}</h2>
+    <p style="color: #8b949e; font-size: 0.9em;">Actualiza los detalles del curso en el sistema.</p>
+
+    <form method="POST">
+        {% csrf_token %}
+        
+        <!-- Renderizado manual para aplicar los estilos .form-control -->
+        <div class="form-group">
+            {% for field in form %}
+                <div style="margin-bottom: 15px;">
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}<small style="color:#8b949e">{{ field.help_text }}</small>{% endif %}
+                    {% for error in field.errors %}<div style="color:#da3633; font-size: 0.8em;">{{ error }}</div>{% endfor %}
+                </div>
+            {% endfor %}
+        </div>
+
+        <button type="submit" class="btn-save">Guardar Cambios</button>
+        <a href="{% url 'inventario:gestion_cursos' %}" class="btn-cancel">Cancelar</a>
+    </form>
+</div>
+
+<script>
+    // Aplicar clase CSS a todos los inputs del formulario automáticamente
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+        el.classList.add('form-control');
+    });
+</script>
+{% endblock %}

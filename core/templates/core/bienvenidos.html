@@ -1,0 +1,78 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bienvenido | SIPEL</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body{ font-family:'Inter',sans-serif; background:#f4f7fb; }
+        .card{ transition:all .35s ease; box-shadow:0 12px 25px rgba(0,0,0,.10); }
+        .card:hover{ transform:translateY(-10px); box-shadow:0 22px 45px rgba(0,0,0,.20); }
+        .icon-circle{ width:90px; height:90px; border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:42px; margin:auto; }
+        .logo{ width:90px; margin:auto; filter:drop-shadow(0 4px 8px rgba(0,0,0,.20)); }
+        .btn{ transition:all .30s; }
+        .btn:hover{ transform:translateY(-3px); box-shadow:0 10px 25px rgba(0,0,0,.25); }
+    </style>
+</head>
+
+<body class="flex items-center justify-center min-h-screen p-6">
+
+<!-- BOTÓN REGRESAR AL INICIO -->
+<div class="absolute top-6 left-6">
+    <!-- CORREGIDO: Eliminado "inventario:" -->
+    <a href="{% url 'core:index' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-semibold shadow-lg transition">
+        ← Inicio
+    </a>
+</div>
+
+<div class="w-full max-w-7xl bg-white rounded-2xl shadow-2xl p-10 border border-gray-100">
+    <!-- ENCABEZADO -->
+    <div class="text-center">
+        <img src="{% static 'img/logo.png' %}" class="logo" alt="Logo SIPEL">
+        <h1 class="text-5xl font-extrabold text-gray-800 mt-6">BIENVENIDO A SIPEL</h1>
+        <p class="text-xl text-gray-600 mt-4">Sistema Integral para una Plataforma de Educación en Línea</p>
+        <p class="text-gray-500 mt-3">Selecciona el tipo de usuario para iniciar sesión en el sistema.</p>
+    </div>
+
+    <!-- TARJETAS -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
+        
+        <!-- ADMINISTRADOR -->
+        <div class="card bg-white rounded-2xl border p-8 text-center">
+            <div class="icon-circle bg-blue-100">👨‍💼</div>
+            <h2 class="text-2xl font-bold text-gray-800 mt-5">Administrador</h2>
+            <p class="text-gray-500 mt-4">Gestiona estudiantes, instructores, cursos, inscripciones, pagos, usuarios y reportes.</p>
+            <!-- CORREGIDO: Eliminado "inventario:" -->
+            <a href="{% url 'core:login' %}?role=admin" class="btn block mt-8 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold">INICIAR SESIÓN</a>
+        </div>
+
+        <!-- INSTRUCTOR -->
+        <div class="card bg-white rounded-2xl border p-8 text-center">
+            <div class="icon-circle bg-green-100">👩‍🏫</div>
+            <h2 class="text-2xl font-bold text-gray-800 mt-5">Instructor</h2>
+            <p class="text-gray-500 mt-4">Consulta cursos asignados, registra evaluaciones y administra estudiantes inscritos.</p>
+            <!-- CORREGIDO: Eliminado "inventario:" -->
+            <a href="{% url 'core:login' %}?role=instructor" class="btn block mt-8 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-semibold">INICIAR SESIÓN</a>
+        </div>
+
+        <!-- ESTUDIANTE -->
+        <div class="card bg-white rounded-2xl border p-8 text-center">
+            <div class="icon-circle bg-orange-100">🎓</div>
+            <h2 class="text-2xl font-bold text-gray-800 mt-5">Estudiante</h2>
+            <p class="text-gray-500 mt-4">Consulta cursos, realiza inscripciones, revisa pagos, calificaciones y descarga constancias.</p>
+            <!-- CORREGIDO: Eliminado "inventario:" -->
+            <a href="{% url 'core:login' %}?role=estudiante" class="btn block mt-8 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-semibold">INICIAR SESIÓN</a>
+        </div>
+    </div>
+
+    <!-- PIE -->
+    <div class="mt-14 border-t pt-8 text-center">
+        <p class="text-gray-500">© 2026 SIPEL | Sistema Integral para una Plataforma de Educación en Línea</p>
+    </div>
+</div>
+
+</body>
+</html>

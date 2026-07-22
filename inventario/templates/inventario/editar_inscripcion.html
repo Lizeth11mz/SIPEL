@@ -1,0 +1,71 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Editar Inscripción{% endblock %}
+
+{% block content %}
+<style>
+    .edit-container { max-width: 600px; margin: 40px auto; background: #161b22; padding: 30px; border-radius: 12px; border: 1px solid #30363d; color: white; }
+    .form-group { margin-bottom: 20px; }
+    .form-group p { display: flex; flex-direction: column; margin-bottom: 15px; }
+    .form-group label { margin-bottom: 5px; font-weight: bold; color: #c9d1d9; }
+    .form-group input, .form-group select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: white; box-sizing: border-box; }
+    .btn-save { background-color: #238636; border: none; padding: 12px 20px; color: white; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; transition: background 0.3s; }
+    .btn-save:hover { background-color: #2ea043; }
+    .btn-cancel { display: block; text-align: center; margin-top: 15px; color: #8b949e; text-decoration: none; }
+</style>
+
+<div class="edit-container">
+    <h2 style="margin-top: 0;">✎ Editar Inscripción ID: {{ inscripcion.id }}</h2>
+    <p style="color: #8b949e;">Modifica los campos para actualizar la inscripción.</p>
+
+    <form method="POST">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <!-- Renderizamos solo los campos que NO son curso ni total_pago -->
+            {% for field in form %}
+                {% if field.name != 'curso' and field.name != 'total_pago' %}
+                    <p>{{ field.label_tag }} {{ field }}</p>
+                {% endif %}
+            {% endfor %}
+
+            <!-- Campo Curso manual -->
+            <p>
+                <label for="select-curso">Curso:</label>
+                <select id="select-curso" name="curso" required>
+                    <option value="">Seleccione un curso...</option>
+                    {% for curso in cursos %}
+                        <option value="{{ curso.id }}" data-costo="{{ curso.costo }}" {% if inscripcion.curso.id == curso.id %}selected{% endif %}>
+                            {{ curso.nombre_curso }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </p>
+
+            <!-- Campo Total único (nombre name="total_pago" para coincidir con tu modelo) -->
+            <p>
+                <label for="input-total">Total a Pagar:</label>
+                <input type="number" id="input-total" name="total_pago" step="0.01" value="{{ inscripcion.total_pago }}" readonly required>
+            </p>
+        </div>
+
+        <button type="submit" class="btn-save">Guardar Cambios</button>
+        <a href="{% url 'inventario:gestion_inscripciones' %}" class="btn-cancel">Cancelar</a>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectCurso = document.getElementById('select-curso');
+    const inputTotal = document.getElementById('input-total');
+
+    selectCurso.addEventListener('change', function() {
+        const opcion = this.options[this.selectedIndex];
+        const costo = opcion.getAttribute('data-costo');
+        // Si no hay costo (opción vacía), pone 0.00
+        inputTotal.value = costo ? costo : '0.00';
+    });
+});
+</script>
+{% endblock %}

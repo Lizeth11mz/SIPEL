@@ -1,0 +1,70 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% block title %}Gestión de Usuarios{% endblock %}
+
+{% block content %}
+<div class="usuarios-container" style="padding: 20px;">
+
+    {# Cabecera #}
+    <div style="background-color: #f39c12; padding: 15px; border-radius: 5px; color: white; margin-bottom: 20px;">
+        <h1 style="margin:0;">👤 GESTIÓN DE USUARIOS</h1>
+    </div>
+
+    {# --- Verificación de permisos --- #}
+    {% if request.user.is_superuser or "Admin" in request.user.groups.all|join:"," %}
+
+        {# --- Barra de Filtros y Acción --- #}
+        <form method="GET" action="{% url 'inventario:gestion_usuarios' %}" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+            <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Buscar usuario..." style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; flex-grow: 1;">
+            
+            <select name="estado" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                <option value="">Todos los estados</option>
+                <option value="activo" {% if request.GET.estado == 'activo' %}selected{% endif %}>Activo</option>
+                <option value="inactivo" {% if request.GET.estado == 'inactivo' %}selected{% endif %}>Inactivo</option>
+            </select>
+
+            <button type="submit" class="btn" style="background-color: #27ae60; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Filtrar</button>
+            <a href="{% url 'inventario:crear_usuario' %}" class="btn" style="background-color: #f39c12; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">+ Nuevo</a>
+        </form>
+
+        {# --- Tabla de Usuarios --- #}
+        <div style="background-color: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; color: black;">
+            <table style="width: 100%; border-collapse: collapse; color: black;">
+                <thead>
+                    <tr style="background-color: #f4f4f4; text-align: left; color: black;">
+                        <th style="padding: 12px; border-bottom: 2px solid #ddd;">ID</th>
+                        <th style="padding: 12px; border-bottom: 2px solid #ddd;">Usuario</th>
+                        <th style="padding: 12px; border-bottom: 2px solid #ddd;">Nombre</th>
+                        <th style="padding: 12px; border-bottom: 2px solid #ddd;">Rol</th>
+                        <th style="padding: 12px; border-bottom: 2px solid #ddd;">Estado</th>
+                        <th style="padding: 12px; border-bottom: 2px solid #ddd; text-align: center;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr style="border-bottom: 1px solid #eee; color: black;">
+                        <td style="padding: 10px;">{{ usuario.id }}</td>
+                        <td style="padding: 10px;">{{ usuario.username }}</td>
+                        <td style="padding: 10px;">{{ usuario.first_name }} {{ usuario.last_name }}</td>
+                        <td style="padding: 10px;">{{ usuario.groups.first.name|default:"Sin rol" }}</td>
+                        <td style="padding: 10px;">{% if usuario.is_active %}Activo{% else %}Inactivo{% endif %}</td>
+                        <td style="padding: 10px; text-align: center;">
+                            <a href="{% url 'inventario:editar_usuario' usuario.pk %}" style="color: #2980b9; margin-right: 10px; text-decoration: none; font-weight: bold;">Editar</a>
+                            <a href="{% url 'inventario:eliminar_usuario' usuario.pk %}" style="color: #c0392b; text-decoration: none; font-weight: bold;" onclick="return confirm('¿Estás seguro?')">Eliminar</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" style="padding: 20px; text-align: center; color: black;">No se encontraron usuarios.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    {% else %}
+        <div style="text-align: center; padding: 50px; background-color: #f8d7da; color: #721c24; border-radius: 8px;">
+            <h2>❌ Acceso Denegado</h2>
+            <p>No tienes permisos de administrador.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

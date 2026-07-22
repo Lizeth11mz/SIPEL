@@ -1,0 +1,22 @@
+{% extends 'core/base_estudiante.html' %}
+{% block title %}Mis Inscripciones{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">📝 Mis Inscripciones</h1>
+<table class="w-full bg-white shadow rounded">
+    <thead>
+        <tr class="bg-gray-200">
+            <th class="p-4 text-left">Curso</th>
+            <th class="p-4 text-left">Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for insc in inscripciones %}
+        <tr>
+            <td class="p-4 border-b">{{ insc.curso.nombre_curso }}</td>
+            <td class="p-4 border-b">{{ insc.estado }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

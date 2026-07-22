@@ -1,0 +1,45 @@
+<!-- inventario/templates/inventario/confirmar_eliminacion.html -->
+<style>
+    .modal-container {
+        max-width: 500px;
+        margin: 50px auto;
+        padding: 25px;
+        background-color: #1e293b; /* Color oscuro similar a tu tabla */
+        color: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        text-align: center;
+        font-family: Arial, sans-serif;
+    }
+    .btn {
+        padding: 10px 20px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: bold;
+        display: inline-block;
+        margin: 10px;
+        cursor: pointer;
+        border: none;
+    }
+    .btn-danger { background-color: #ef4444; color: white; }
+    .btn-secondary { background-color: #64748b; color: white; }
+    .btn:hover { opacity: 0.9; }
+</style>
+
+<div class="modal-container">
+    <h2 style="color: #f87171;">¿Confirmar eliminación?</h2>
+    <p>Estás a punto de eliminar este/a <strong>{{ tipo }}</strong>:</p>
+    <p style="font-size: 1.2em; border: 1px solid #334155; padding: 10px; border-radius: 5px;">{{ objeto }}</p>
+    <p style="font-size: 0.9em; color: #94a3b8;">Esta acción no se puede deshacer.</p>
+    
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+        
+        {% if request.META.HTTP_REFERER %}
+            <a href="{{ request.META.HTTP_REFERER }}" class="btn btn-secondary">Cancelar</a>
+        {% else %}
+            <a href="{% url 'inventario:gestion_inscripciones' %}" class="btn btn-secondary">Cancelar</a>
+        {% endif %}
+    </form>
+</div>

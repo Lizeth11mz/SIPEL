@@ -1,0 +1,106 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Instructores{% endblock %}
+
+{% block content %}
+<style>
+    .page-container { padding: 20px; color: #e6edf3; font-family: sans-serif; }
+    .btn-new { background-color: #0d6efd; border: none; padding: 12px 20px; color: white; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    
+    .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; background: #161b22; padding: 20px; border-radius: 12px; border: 1px solid #30363d; align-items: center; }
+    .filter-bar input, .filter-bar select { padding: 12px; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: #e6edf3; }
+    
+    .stats-container { display: flex; gap: 15px; margin-bottom: 30px; }
+    .stat-card { flex: 1; background: #161b22; padding: 15px; border-radius: 12px; border: 1px solid #30363d; display: flex; align-items: center; gap: 15px; color: #e6edf3; }
+    
+    .table-container { background: #161b22; border-radius: 12px; border: 1px solid #30363d; padding: 20px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; color: #e6edf3; }
+    th { color: #8b949e; border-bottom: 2px solid #30363d; padding: 15px; text-align: left; }
+    td { padding: 15px; border-bottom: 1px solid #30363d; }
+</style>
+
+<div class="page-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h1 style="margin: 0; color: #ffffff;">👥 Instructores</h1>
+            <p style="color: #8b949e;">Gestiona la información de los instructores del sistema</p>
+        </div>
+        <button type="button" class="btn-new" onclick="openNewInstructorModal()">+ Nuevo Instructor</button>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="stats-container">
+        <div class="stat-card">✅ <div><small style="color:#8b949e">Instructores activos</small><br><strong>{{ total_activos|default:"0" }}</strong></div></div>
+        <div class="stat-card">⏸ <div><small style="color:#8b949e">Instructores inactivos</small><br><strong>{{ total_inactivos|default:"0" }}</strong></div></div>
+    </div>
+
+    <!-- Barra de Búsqueda y Filtros -->
+    <form method="GET" action="{% url 'inventario:gestion_instructores' %}" class="filter-bar">
+        <input type="text" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Buscar instructor..." style="flex: 1;">
+        
+        <select name="especialidad">
+            <option value="">Todas las especialidades</option>
+            {% for esp in lista_especialidades %}
+                <option value="{{ esp }}" {% if request.GET.especialidad == esp %}selected{% endif %}>{{ esp }}</option>
+            {% endfor %}
+        </select>
+
+        <select name="estado">
+            <option value="">Todos los estados</option>
+            <option value="Activo" {% if request.GET.estado == 'Activo' %}selected{% endif %}>Activo</option>
+            <option value="Inactivo" {% if request.GET.estado == 'Inactivo' %}selected{% endif %}>Inactivo</option>
+        </select>
+        
+        <button type="submit" class="btn-new" style="background: #238636;">Buscar</button>
+        <a href="{% url 'inventario:gestion_instructores' %}" style="padding: 12px; border: 1px solid #30363d; border-radius: 8px; color: #e6edf3; text-decoration: none;">🔄</a>
+    </form>
+
+    <!-- Tabla -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>NOMBRE</th>
+                    <th>ESPECIALIDAD</th>
+                    <th>CÉDULA PROFESIONAL</th>
+                    <th>USUARIO</th>
+                    <th>ESTADO</th>
+                    <th>ACCIONES</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for instructor in instructores %}
+                <tr>
+                    <!-- Corregido: instructor.instructor_id en lugar de instructor.id -->
+                    <td>{{ instructor.instructor_id }}</td>
+                    <td>{{ instructor.nombre_completo }}</td>
+                    <td>{{ instructor.especialidad }}</td>
+                    <td>{{ instructor.cedula_profesional }}</td>
+                    <td>{{ instructor.usuario }}</td>
+                    <td>
+                        <span style="padding: 4px 10px; border-radius: 12px; font-weight: bold; 
+                            {% if instructor.estado == 'Activo' %}background: #1a3a2a; color: #3fb950;
+                            {% else %}background: #3a1a1a; color: #ff6b6b;{% endif %}">
+                            ● {{ instructor.estado }}
+                        </span>
+                    </td>
+                    <td>
+                        <!-- Botón Editar corregido con instructor.instructor_id -->
+                        <a href="{% url 'inventario:editar_instructor' instructor.instructor_id %}" style="text-decoration: none; color: #e6edf3; background: #21262d; border: 1px solid #30363d; padding: 5px 10px; border-radius: 4px;">✏️</a>
+                        
+                        <!-- Botón Eliminar -->
+                        <a href="#" style="text-decoration: none; color: #e6edf3; background: #21262d; border: 1px solid #30363d; padding: 5px 10px; border-radius: 4px;">🗑</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Incluir el modal de instructor -->
+{% include 'inventario/modal_nuevo_instructor.html' %}
+
+{% endblock %}

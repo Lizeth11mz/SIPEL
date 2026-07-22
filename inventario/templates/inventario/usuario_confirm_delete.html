@@ -1,0 +1,51 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Eliminar Usuario{% endblock %}
+
+{% block content %}
+<style>
+    /* Contenedor centralizado para la confirmación */
+    .delete-wrapper {
+        max-width: 500px;
+        margin: 50px auto;
+        padding: 30px;
+        background: #ffffff;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        color: #333 !important;
+        font-family: sans-serif;
+    }
+
+    .btn-delete {
+        background-color: #e74c3c;
+        color: white !important;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .btn-cancel {
+        margin-left: 15px;
+        color: #7f8c8d !important;
+        text-decoration: none;
+        font-weight: bold;
+    }
+</style>
+
+<div class="delete-wrapper">
+    <h2 style="margin-top: 0; color: #c0392b !important;">⚠️ Confirmar Eliminación</h2>
+    <p>¿Estás seguro de que deseas eliminar al usuario <strong>{{ usuario.username }}</strong>?</p>
+    <p>Esta acción es permanente y no se puede deshacer.</p>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div style="margin-top: 30px;">
+            <button type="submit" class="btn-delete">Sí, eliminar usuario</button>
+            <a href="{% url 'inventario:gestion_usuarios' %}" class="btn-cancel">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

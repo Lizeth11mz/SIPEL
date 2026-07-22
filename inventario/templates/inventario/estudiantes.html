@@ -1,0 +1,109 @@
+{% extends 'core/base.html' %}
+
+{% load static %}
+
+{% block title %}Estudiantes{% endblock %}
+
+{% block content %}
+
+<!-- Cabecera -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+        <h1 style="margin: 0; color: white; font-size: 28px;">👥 Estudiantes</h1>
+        <p style="color: #8b949e; margin: 5px 0 0 0;">Gestiona la información de los estudiantes del sistema</p>
+    </div>
+    <!-- Botón que dispara el modal -->
+    <button type="button" onclick="openNewStudentModal()" style="background-color: #0d6efd; border: none; padding: 12px 20px; color: white; border-radius: 8px; font-weight: bold; cursor: pointer;">
+        + Nuevo Estudiante
+    </button>
+</div>
+
+<!-- Barra de Búsqueda y Filtros -->
+<form method="GET" action="{% url 'inventario:gestion_estudiantes' %}" style="display: flex; gap: 15px; margin-bottom: 20px; background: #0d1117; padding: 20px; border-radius: 12px; border: 1px solid #30363d; align-items: center;">
+
+    <!-- Buscador -->
+    <div style="flex: 1; display: flex; gap: 5px;">
+        <input type="text" name="busqueda" value="{{ request.GET.busqueda|default:'' }}"
+               placeholder="Escribe una letra o nombre..."
+               style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #30363d; background: #161b22; color: white;">
+        
+        <button type="submit" style="background: #238636; border: none; padding: 10px 20px; color: white; border-radius: 8px; cursor: pointer;">Buscar</button>
+    </div>
+
+    <!-- Filtro Estado -->
+    <select name="estado" style="background: #161b22; border: 1px solid #30363d; padding: 12px; color: white; border-radius: 8px; cursor: pointer;">
+        <option value="">Todos los estados</option>
+        <option value="Activo" {% if request.GET.estado == 'Activo' %}selected{% endif %}>Activo</option>
+        <option value="Inactivo" {% if request.GET.estado == 'Inactivo' %}selected{% endif %}>Inactivo</option>
+    </select>
+    
+    <a href="{% url 'inventario:gestion_estudiantes' %}" style="background: #161b22; border: 1px solid #30363d; padding: 12px 20px; color: white; text-decoration: none; border-radius: 8px;">🔄</a>
+</form>
+
+<!-- Tabla de Estudiantes -->
+<div style="background: #0d1117; border-radius: 12px; border: 1px solid #30363d; padding: 20px; overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; color: white; min-width: 900px;">
+        <thead>
+            <tr style="border-bottom: 1px solid #30363d; color: #8b949e; text-align: left;">
+                <th style="padding: 15px;">ID</th>
+                <th style="padding: 15px;">Nombre Completo</th>
+                <th style="padding: 15px;">Correo</th>
+                <th style="padding: 15px;">Teléfono</th>
+                <!-- ENCABEZADO "Documento" -->
+                <th style="padding: 15px; text-align: left;">Documento</th>
+                <th style="padding: 15px;">Estado</th>
+                <th style="padding: 15px; text-align: center;">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for est in estudiantes %}
+            <tr style="border-bottom: 1px solid #21262d;">
+                <td style="padding: 15px;">{{ est.estudiante_id }}</td>
+                <td style="padding: 15px;">{{ est.nombre_completo }}</td>
+                <td style="padding: 15px;">{{ est.email }}</td>
+                <td style="padding: 15px;">{{ est.telefono }}</td>
+                
+                <!-- CELDA CON EL DISEÑO DE TARJETA QUE QUERÍAS -->
+                <td style="padding: 15px; text-align: left;">
+                    <div style="font-weight: bold; margin-bottom: 6px; color: white; font-size: 14px; text-align: left;">
+                        {{ est.tipo_documento }}
+                    </div>
+                    <!-- Cambia 'est.numero_documento' por el nombre exacto de la columna de tu BD si se llama distinto -->
+                    <div style="font-family: monospace; font-size: 12px; color: #8b949e; word-break: break-all; background: #161b22; padding: 8px 10px; border-radius: 6px; border: 1px solid #30363d; max-width: 350px; text-align: left;">
+                        {{ est.numero_documento }}
+                    </div>
+                </td>
+                
+                <td style="padding: 15px;">
+                    <span style="padding: 5px 12px; border-radius: 20px; font-size: 0.85em; display: inline-block;
+                        {% if est.estado == 'Activo' %}background: #1a3a2a; color: #3fb950;
+                        {% else %}background: #3a1a1a; color: #ff6b6b;{% endif %}">
+                        ● {{ est.estado }}
+                    </span>
+                </td>
+
+                <td style="padding: 15px; text-align: center;">
+                    <div style="display: flex; gap: 8px; justify-content: center;">
+                        <a href="{% url 'inventario:editar_estudiante' est.estudiante_id %}" style="background: #161b22; padding: 8px 12px; border-radius: 6px; border: 1px solid #30363d; text-decoration: none; color: white;">✏️</a>
+                        <a href="{% url 'inventario:eliminar_estudiante' est.estudiante_id %}" style="background: #161b22; padding: 8px 12px; border-radius: 6px; border: 1px solid #30363d; text-decoration: none; color: white;" onclick="return confirm('¿Seguro?')">🗑️</a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Inclusión del modal -->
+{% include 'inventario/modal_nuevo_estudiante.html' %}
+
+<script>
+    function openNewStudentModal() {
+        const modal = document.getElementById('newStudentModal');
+        if (modal) {
+            modal.style.display = 'block';
+        }
+    }
+</script>
+
+{% endblock %}

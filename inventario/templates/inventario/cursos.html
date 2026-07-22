@@ -1,0 +1,112 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Cursos{% endblock %}
+
+{% block content %}
+<style>
+    .page-container { padding: 20px; background: #0d1117; min-height: 100vh; color: #e6edf3; font-family: sans-serif; }
+    .btn-new { background-color: #238636; border: none; padding: 12px 20px; color: white; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; background: #161b22; padding: 20px; border-radius: 12px; border: 1px solid #30363d; align-items: center; }
+    .filter-bar input, .filter-bar select { padding: 12px; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: #e6edf3; }
+    .stats-container { display: flex; gap: 15px; margin-bottom: 30px; }
+    .stat-card { flex: 1; background: #161b22; padding: 15px; border-radius: 12px; border: 1px solid #30363d; display: flex; align-items: center; gap: 15px; }
+    .table-container { background: #161b22; border-radius: 12px; border: 1px solid #30363d; padding: 20px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; color: #e6edf3; font-size: 0.9em; }
+    th { color: #8b949e; border-bottom: 2px solid #30363d; padding: 12px; text-align: left; }
+    td { padding: 12px; border-bottom: 1px solid #30363d; }
+    
+    /* Estilos del modal */
+    .modal-overlay { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); }
+    .modal-content { background: #161b22; margin: 5% auto; padding: 0; border: 1px solid #30363d; width: 500px; border-radius: 12px; position: relative; }
+</style>
+
+<div class="page-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1 style="color: #ffffff;">🎓 Gestión de Cursos</h1>
+        <button type="button" onclick="openNewCourseModal()" class="btn-new">+ Nuevo Curso</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-container">
+        <div class="stat-card">📖 <div><small style="color:#8b949e">Total</small><br><strong>{{ total_cursos|default:"0" }}</strong></div></div>
+        <div class="stat-card">✅ <div><small style="color:#8b949e">Activos</small><br><strong>{{ total_activos|default:"0" }}</strong></div></div>
+        <div class="stat-card">💰 <div><small style="color:#8b949e">Costos Totales</small><br><strong>${{ costo_total|default:"0" }}</strong></div></div>
+    </div>
+
+    <!-- Filtros -->
+    <form method="GET" autocomplete="off" class="filter-bar">
+        <input type="text" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Buscar por nombre..." style="flex: 1;">
+        <select name="estado"><option value="">Estado</option><option value="Activo">Activo</option><option value="Inactivo">Inactivo</option></select>
+        <button type="submit" class="btn-new">Buscar</button>
+    </form>
+
+    <!-- Tabla completa -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>NOMBRE</th>
+                    <th>CATEGORÍA</th>
+                    <th>INSTRUCTOR ID</th>
+                    <th>DURACIÓN</th>
+                    <th>COSTO</th>
+                    <th>CUPO</th>
+                    <th>ESTADO</th>
+                    <th>ACCIONES</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for curso in cursos %}
+                <tr>
+                    <td>{{ curso.curso_id }}</td>
+                    <td>{{ curso.nombre_curso }}</td>
+                    <td>{{ curso.categoria }}</td>
+                    <td>{{ curso.instructor_id }}</td>
+                    <td>{{ curso.duracion_horas }}h</td>
+                    <td>${{ curso.costo }}</td>
+                    <td>{{ curso.cupo_maximo }}</td>
+                    <td>
+                        <span style="padding: 3px 8px; border-radius: 10px; font-size: 0.8em; {% if curso.estado == 'Activo' %}background: #238636;{% else %}background: #da3633;{% endif %}">
+                            {{ curso.estado }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'inventario:editar_curso' curso.curso_id %}">✎</a>
+                        <a href="{% url 'inventario:eliminar_curso' curso.curso_id %}" style="margin-left:10px;">🗑</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9" style="text-align: center;">No hay cursos registrados.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="modalNuevoCurso" class="modal-overlay">
+    <div class="modal-content">
+        {% include 'inventario/modal_nuevo_curso.html' %}
+    </div>
+</div>
+
+<script>
+    function openNewCourseModal() {
+        document.getElementById('modalNuevoCurso').style.display = 'block';
+    }
+
+    function closeNewCourseModal() {
+        document.getElementById('modalNuevoCurso').style.display = 'none';
+    }
+
+    // Cierra el modal si se hace clic fuera del contenido
+    window.onclick = function(event) {
+        var modal = document.getElementById('modalNuevoCurso');
+        if (event.target == modal) {
+            closeNewCourseModal();
+        }
+    }
+</script>
+{% endblock %}

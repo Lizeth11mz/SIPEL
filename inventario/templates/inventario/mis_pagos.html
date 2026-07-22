@@ -1,0 +1,24 @@
+{% extends 'core/base_estudiante.html' %}
+{% block title %}Mis Pagos{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">💳 Historial de Pagos</h1>
+<table class="w-full bg-white shadow rounded">
+    <thead>
+        <tr class="bg-gray-200">
+            <th class="p-4 text-left">Fecha</th>
+            <th class="p-4 text-left">Monto</th>
+            <th class="p-4 text-left">Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for pago in pagos %}
+        <tr>
+            <td class="p-4 border-b">{{ pago.fecha|date:"d/m/Y" }}</td>
+            <td class="p-4 border-b">${{ pago.monto }}</td>
+            <td class="p-4 border-b">{{ pago.estado|title }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

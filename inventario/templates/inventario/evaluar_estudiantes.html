@@ -1,0 +1,24 @@
+{% extends 'core/base_instructor.html' %}
+{% block title %}Calificar Alumnos{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">⭐ Calificar Alumnos</h1>
+<table class="w-full bg-white shadow rounded">
+    <thead>
+        <tr class="bg-gray-100">
+            <th class="p-4 text-left">Estudiante</th>
+            <th class="p-4 text-left">Curso</th>
+            <th class="p-4 text-left">Acción</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for insc in inscripciones %}
+        <tr>
+            <td class="p-4 border-b">{{ insc.estudiante.nombre }}</td>
+            <td class="p-4 border-b">{{ insc.curso.nombre_curso }}</td>
+            <td class="p-4 border-b"><a href="#" class="text-blue-600 underline">Calificar</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

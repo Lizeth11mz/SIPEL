@@ -1,0 +1,102 @@
+{% load static %}
+{% load auth_extras %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}SIPEL{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}"> 
+    <style>
+        body { margin: 0; font-family: sans-serif; display: flex; flex-direction: column; min-height: 100vh; }
+        
+        .top-bar { 
+            background-color: #104274; color: #d1d1d1; padding: 25px 40px; 
+            display: flex; justify-content: center; gap: 60px; 
+            font-size: 1.3em; min-height: 40px; border-bottom: 3px solid #f39c12; 
+        }
+        .top-bar span { color: #f39c12; font-weight: bold; font-size: 1.1em; }
+
+        .main-container { display: flex; flex: 1; }
+
+        .sidebar { 
+            width: 300px; flex-shrink: 0; background: #104274; 
+            color: white; overflow-y: auto; font-size: 1.2em; 
+        }
+        .sidebar-logo-container { text-align: center; padding: 30px; color: white; }
+        .logo-img { max-width: 200px; width: 100%; height: auto; margin-top: 15px; }
+        
+        .sidebar a { display: block; padding: 22px 30px; text-decoration: none; color: #ffffff; display: flex; align-items: center; }
+        .sidebar a:hover { background-color: #16324f; }
+        .sidebar a.active { background-color: #f39c12; color: white; font-weight: bold; }
+        
+        .icon { font-size: 1.4em; margin-right: 20px; width: 35px; text-align: center; }
+        
+        hr { border-color: #1a3a5a; margin: 20px 0; }
+        .content-area { flex-grow: 1; padding: 25px; }
+    </style>
+</head>
+<body>
+
+    {% if request.user.is_authenticated %}
+        <div class="top-bar">
+            <div>👤 Usuario: <span>{{ request.user.username }}</span></div>
+            <div>🛡️ Permiso: <span>{{ request.user.groups.first.name|default:"Sin rol" }}</span></div>
+            <div>📅 Fecha: <span>{% now "d/m/Y" %}</span></div>
+            <div>🕒 Hora: <span id="reloj">--:--:--</span></div>
+        </div>
+    {% endif %}
+
+    <div class="main-container">
+        {% if request.user.is_authenticated %}
+            <nav class="sidebar">
+                <div class="sidebar-logo-container">
+                    <h2 style="margin: 0;">SIPEL</h2>
+                    <img src="{% static 'img/logo.png' %}" alt="Logo" class="logo-img">
+                </div>
+                
+                <div class="sidebar-menu">
+                    <a href="{% url 'inventario:registros' %}" class="{% if request.resolver_match.url_name == 'registros' %}active{% endif %}">
+                        <span class="icon">📦</span> Registros
+                    </a>
+
+                    {% if request.user.is_superuser or request.user|has_group:'Admin' %}
+                        <a href="{% url 'inventario:gestion_estudiantes' %}" class="{% if request.resolver_match.url_name == 'gestion_estudiantes' %}active{% endif %}"><span class="icon">🎓</span> Gestión Estudiantes</a>
+                        <a href="{% url 'inventario:gestion_cursos' %}" class="{% if request.resolver_match.url_name == 'gestion_cursos' %}active{% endif %}"><span class="icon">📘</span> Gestión Cursos</a>
+                        <a href="{% url 'inventario:gestion_instructores' %}" class="{% if request.resolver_match.url_name == 'gestion_instructores' %}active{% endif %}"><span class="icon">👥</span> Instructores</a>
+                        <a href="{% url 'inventario:gestion_inscripciones' %}" class="{% if request.resolver_match.url_name == 'gestion_inscripciones' %}active{% endif %}"><span class="icon">📋</span> Inscripciones</a>
+                        <a href="{% url 'inventario:gestion_evaluaciones' %}" class="{% if request.resolver_match.url_name == 'gestion_evaluaciones' %}active{% endif %}"><span class="icon">⭐</span> Evaluaciones</a>
+                        <a href="{% url 'inventario:gestion_pagos' %}" class="{% if request.resolver_match.url_name == 'gestion_pagos' %}active{% endif %}"><span class="icon">💳</span> Pagos</a>
+                        <a href="{% url 'inventario:reportes' %}" class="{% if request.resolver_match.url_name == 'reportes' %}active{% endif %}"><span class="icon">📊</span> Reportes</a>
+                        <a href="{% url 'inventario:gestion_usuarios' %}" class="{% if request.resolver_match.url_name == 'gestion_usuarios' %}active{% endif %}"><span class="icon">👤</span> Usuarios</a>
+                    {% endif %}
+
+                    <hr>
+                    <form action="{% url 'inventario:logout' %}" method="post" style="margin: 0;">
+                        {% csrf_token %}
+                        <button type="submit" style="background: none; border: none; padding: 22px 30px; width: 100%; text-align: left; cursor: pointer; color: #ff6b6b; font-size: 1em; display: flex; align-items: center;">
+                            <span class="icon">🚪</span> Cerrar Sesión
+                        </button>
+                    </form>
+                </div>
+            </nav>
+        {% endif %}
+
+        <!-- ÚNICO BLOQUE CONTENT (Sigue dentro de main-container para mantener el maquetado) -->
+        <main class="content-area">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script>
+        function actualizarReloj() {
+            const el = document.getElementById('reloj');
+            if (el) {
+                const ahora = new Date();
+                el.innerText = ahora.toLocaleTimeString('es-ES', {hour12: false});
+            }
+        }
+        setInterval(actualizarReloj, 1000);
+        actualizarReloj();
+    </script>
+</body>
+</html>

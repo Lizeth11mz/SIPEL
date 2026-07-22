@@ -1,0 +1,104 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acerca de | SIPEL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *{ margin:0; padding:0; box-sizing:border-box; }
+        body{ font-family:'Poppins',sans-serif; background:#f4f7fb; color:#333; }
+        header{ position:relative; background:linear-gradient(135deg,#003b8e,#0066cc); color:white; padding:80px 20px; text-align:center; }
+        header h1{ font-size:60px; font-weight:800; }
+        header p{ margin-top:20px; font-size:22px; max-width:900px; margin-left:auto; margin-right:auto; }
+        .container{ width:90%; max-width:1200px; margin:50px auto; }
+        .card{ background:white; border-radius:20px; padding:40px; margin-bottom:30px; box-shadow:0 10px 25px rgba(0,0,0,.10); }
+        .card h2{ color:#003b8e; margin-bottom:20px; }
+        .card p{ line-height:1.8; font-size:18px; }
+        .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:25px; }
+        .box{ background:white; border-radius:20px; padding:30px; box-shadow:0 10px 25px rgba(0,0,0,.10); }
+        .box h3{ color:#0066cc; margin-bottom:15px; }
+        .box p{ line-height:1.7; }
+        .btn-home{ position:absolute; top:30px; left:30px; text-decoration:none; background:white; color:#003b8e; padding:12px 25px; border-radius:10px; font-weight:600; transition:.3s; box-shadow:0 5px 15px rgba(0,0,0,.20); }
+        .btn-home:hover{ background:#004fa3; color:white; }
+        footer{ background:#032c67; color:white; text-align:center; padding:20px; margin-top:50px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <!-- CORRECCIÓN REALIZADA: Se cambió 'inventario:core:index' por 'core:index' -->
+    <a href="{% url 'core:index' %}" class="btn-home">
+        ← Volver al Inicio
+    </a>
+
+    <img src="{% static 'img/logo.png' %}" width="120" alt="SIPEL">
+    <h1>Acerca de SIPEL</h1>
+    <p>
+        Sistema Integral para una Plataforma de Educación en Línea,
+        diseñado para optimizar la gestión académica, administrativa
+        y educativa en una sola solución tecnológica.
+    </p>
+</header>
+
+<div class="container">
+    <div class="card">
+        <h2>¿Qué es SIPEL?</h2>
+        <p>
+            SIPEL es una plataforma web desarrollada para facilitar la
+            administración de estudiantes, instructores, cursos,
+            evaluaciones, pagos y reportes académicos.
+            Su objetivo es centralizar la información y mejorar la
+            experiencia educativa mediante herramientas modernas,
+            seguras y fáciles de utilizar.
+        </p>
+    </div>
+
+    <div class="grid">
+        <div class="box">
+            <h3>Misión</h3>
+            <p>
+                Proporcionar una plataforma tecnológica eficiente
+                que permita gestionar procesos educativos de manera
+                organizada, segura y accesible.
+            </p>
+        </div>
+        <div class="box">
+            <h3>Visión</h3>
+            <p>
+                Ser una solución líder en la administración de
+                plataformas educativas digitales, contribuyendo
+                a la transformación tecnológica de la educación.
+            </p>
+        </div>
+        <div class="box">
+            <h3>Objetivos</h3>
+            <p>
+                Automatizar procesos académicos, mejorar el control
+                de información y brindar herramientas que apoyen
+                la toma de decisiones institucionales.
+            </p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Características Principales</h2>
+        <p>
+            ✔ Gestión de estudiantes e instructores.<br>
+            ✔ Administración de cursos y programas educativos.<br>
+            ✔ Registro y seguimiento de evaluaciones.<br>
+            ✔ Control de pagos e inscripciones.<br>
+            ✔ Generación de reportes académicos.<br>
+            ✔ Acceso seguro mediante roles y permisos.<br>
+            ✔ Plataforma adaptable a distintos dispositivos.
+        </p>
+    </div>
+</div>
+
+<footer>
+    <p>© 2026 SIPEL | Sistema Integral para una Plataforma de Educación en Línea</p>
+</footer>
+
+</body>
+</html>

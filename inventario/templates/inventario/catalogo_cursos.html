@@ -1,0 +1,14 @@
+{% extends 'core/base_estudiante.html' %}
+{% block title %}Catálogo de Cursos{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">📚 Catálogo de Cursos</h1>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    {% for curso in cursos %}
+    <div class="bg-white p-4 border rounded shadow">
+        <h2 class="font-bold">{{ curso.nombre_curso }}</h2>
+        <p>{{ curso.descripcion }}</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

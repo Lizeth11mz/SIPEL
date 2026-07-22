@@ -1,0 +1,80 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}SIPEL | Instructor{% endblock %}</title>
+    <!-- Tailwind CSS cargado para tus componentes -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}"> 
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; min-height: 100vh; background-color: #f4f7f6; }
+        .icon { font-size: 1.2em; margin-right: 15px; width: 24px; display: inline-block; text-align: center; }
+        .top-bar { background-color: #104274; color: #ffffff; padding: 15px 30px; display: flex; justify-content: center; gap: 40px; font-size: 1em; border-bottom: 3px solid #007bff; }
+        .top-bar span { color: #80c4ff; font-weight: bold; }
+        .main-container { display: flex; flex: 1; }
+        .sidebar { width: 250px; flex-shrink: 0; background: #0b2e51; color: white; overflow-y: auto; }
+        .sidebar-logo-container { text-align: center; padding: 20px; color: white; }
+        .logo-img { max-width: 120px; width: 100%; height: auto; margin-top: 10px; }
+        .sidebar a { display: block; padding: 15px 20px; text-decoration: none; color: #d1d1d1; transition: 0.3s; }
+        .sidebar a:hover { background-color: #16324f; color: white; }
+        .sidebar a.active { background-color: #007bff; color: white; font-weight: bold; }
+        hr { border: 0; border-top: 1px solid #1a3a5a; margin: 15px 0; }
+        .content-area { flex-grow: 1; padding: 30px; color: #333; }
+        
+        /* Corregido: Solo aplicamos color a h1, h2, h3 si NO están dentro de un fondo azul */
+        :not(.bg-blue-900) > h1, :not(.bg-blue-900) > h2, :not(.bg-blue-900) > h3 { color: #104274; }
+    </style>
+</head>
+<body>
+    {% if request.user.is_authenticated %}
+        {% with user_profile=request.user.perfilusuario %}
+            <div class="top-bar">
+                <div>👤 Instructor: <span>{{ user_profile.nombre_mostrar }}</span></div>
+                <div>📅 Fecha: <span>{% now "d/m/Y" %}</span></div>
+                <div>🕒 Hora: <span id="reloj"></span></div>
+            </div>
+            <div class="main-container">
+                <nav class="sidebar">
+                    <div class="sidebar-logo-container">
+                        <h3 style="margin: 0; color: white;">SIPEL</h3>
+                        <img src="{% static 'img/logo.png' %}" alt="Logo" class="logo-img">
+                    </div>
+                    <div class="sidebar-menu">
+                        <a href="{% url 'inventario:registros_instructor' %}" class="{% if request.resolver_match.url_name == 'registros_instructor' %}active{% endif %}">
+                            <span class="icon">🏠</span> Panel Instructor
+                        </a>
+                        <a href="{% url 'inventario:mis_cursos' %}" class="{% if request.resolver_match.url_name == 'mis_cursos' %}active{% endif %}">
+                            <span class="icon">📘</span> Mis Cursos
+                        </a>
+                        <a href="{% url 'inventario:lista_estudiantes' %}" class="{% if request.resolver_match.url_name == 'lista_estudiantes' %}active{% endif %}">
+                            <span class="icon">🎓</span> Estudiantes Inscritos
+                        </a>
+                        <a href="{% url 'inventario:evaluar_alumnos' %}" class="{% if request.resolver_match.url_name == 'evaluar_alumnos' %}active{% endif %}">
+                            <span class="icon">⭐</span> Calificar Alumnos
+                        </a>
+                        <hr>
+                        <form action="{% url 'core:logout' %}" method="post" style="margin: 0;">
+                            {% csrf_token %}
+                            <button type="submit" style="background: none; border: none; padding: 15px 20px; width: 100%; text-align: left; cursor: pointer; color: #ff9999; font-size: 1em;">
+                                <span class="icon">🚪</span> Cerrar Sesión
+                            </button>
+                        </form>
+                    </div>
+                </nav>
+                <main class="content-area">
+                    {% block content %}{% endblock %}
+                </main>
+            </div>
+        {% endwith %}
+    {% endif %}
+    <script>
+        function actualizarReloj() {
+            const ahora = new Date();
+            document.getElementById('reloj').innerText = ahora.toLocaleTimeString('es-ES', {hour12: false});
+        }
+        setInterval(actualizarReloj, 1000);
+        actualizarReloj();
+    </script>
+</body>
+</html>

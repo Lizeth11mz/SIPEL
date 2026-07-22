@@ -1,0 +1,32 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Editar Instructor{% endblock %}
+
+{% block content %}
+<style>
+    .edit-container { max-width: 600px; margin: 40px auto; background: #161b22; padding: 30px; border-radius: 12px; border: 1px solid #30363d; color: white; }
+    .form-group { margin-bottom: 20px; }
+    /* Estilos para que los inputs generados por Django se vean bien */
+    .form-group p { margin-bottom: 15px; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #30363d; background: #0d1117; color: white; margin-top: 5px; box-sizing: border-box; }
+    .btn-save { background-color: #238636; border: none; padding: 12px 20px; color: white; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; }
+    .btn-cancel { display: block; text-align: center; margin-top: 15px; color: #8b949e; text-decoration: none; }
+</style>
+
+<div class="edit-container">
+    <h2 style="margin-top: 0;">✎ Editar Instructor: {{ instructor.nombre }} {{ instructor.apellido_paterno }}</h2>
+    <p style="color: #8b949e;">Modifica los campos necesarios para actualizar la información.</p>
+
+    <form method="POST">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            {{ form.as_p }}
+        </div>
+
+        <button type="submit" class="btn-save">Guardar Cambios</button>
+        <a href="{% url 'inventario:gestion_instructores' %}" class="btn-cancel">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

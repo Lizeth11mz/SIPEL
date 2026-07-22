@@ -1,0 +1,6 @@
+Collecting django-mssql-backend
+  Using cached django_mssql_backend-2.8.1-py3-none-any.whl.metadata (7.4 kB)
+Requirement already satisfied: pyodbc>=3.0 in d:\proyecto copia\sipel\venv\lib\site-packages (from django-mssql-backend) (5.3.0)
+Using cached django_mssql_backend-2.8.1-py3-none-any.whl (52 kB)
+Installing collected packages: django-mssql-backend
+Successfully installed django-mssql-backend-2.8.1

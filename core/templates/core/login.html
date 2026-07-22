@@ -1,0 +1,52 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar sesión | SIPEL</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+
+<!-- BOTÓN REGRESAR -->
+<div style="position:absolute; top:20px; left:20px; z-index:1000;">
+    <a href="{% url 'core:bienvenido' %}"
+       style="background:#2563eb; color:white; padding:10px 20px; border-radius:8px; text-decoration:none; font-weight:600; box-shadow:0 4px 10px rgba(0,0,0,.2);">
+       ← Inicio
+    </a>
+</div>
+
+<div class="login-container">
+    <div class="login-left"><div class="overlay"></div></div>
+
+    <div class="login-right">
+        <div class="login-box">
+            <h2>INICIAR SESIÓN</h2>
+            <p class="subtitle">Ingresa tus credenciales para continuar.</p>
+            
+            <!-- IMPORTANTE: Mantener la acción vacía para que envíe al mismo URL con el ?role=... -->
+            <form method="post" class="login-form">
+                {% csrf_token %}
+                
+                <label for="id_username">Usuario</label>
+                <input type="text" name="username" id="id_username" required>
+
+                <label for="id_password">Contraseña</label>
+                <input type="password" name="password" id="id_password" required>
+
+                {% if form.errors %}
+                <div class="error-message" style="color:red; margin-bottom:10px;">
+                    Usuario o contraseña incorrectos.
+                </div>
+                {% endif %}
+
+                <button type="submit" class="btn-primary">Iniciar sesión</button>
+                <button type="button" class="btn-cancelar" onclick="window.location.href='{% url 'core:bienvenido' %}'">Regresar</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

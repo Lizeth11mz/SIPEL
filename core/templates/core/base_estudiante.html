@@ -1,0 +1,102 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}SIPEL | Estudiante{% endblock %}</title>
+    
+    <!-- Integración de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="{% static 'css/style.css' %}"> 
+    <style>
+        body { margin: 0; font-family: sans-serif; display: flex; flex-direction: column; min-height: 100vh; }
+        .icon { font-size: 1.2em; margin-right: 15px; width: 24px; display: inline-block; text-align: center; }
+        
+        .top-bar { 
+            background-color: #104274; 
+            color: #d1d1d1; 
+            padding: 20px 30px; 
+            display: flex; 
+            justify-content: center; 
+            gap: 40px; 
+            font-size: 1.1em; 
+            border-bottom: 2px solid #28a745; 
+        }
+        .top-bar span { color: #28a745; font-weight: bold; font-size: 1.1em; }
+
+        .main-container { display: flex; flex: 1; }
+
+        .sidebar { width: 250px; flex-shrink: 0; background: #104274; color: white; overflow-y: auto; }
+        .sidebar-logo-container { text-align: center; padding: 20px; color: white; }
+        .logo-img { max-width: 150px; width: 100%; height: auto; margin-top: 10px; }
+        
+        .sidebar a { display: block; padding: 15px 20px; text-decoration: none; color: #ffffff; }
+        .sidebar a:hover { background-color: #16324f; }
+        .sidebar a.active { background-color: #28a745; color: white; font-weight: bold; }
+        
+        hr { border-color: #1a3a5a; margin: 15px 0; }
+        .content-area { flex-grow: 1; padding: 20px; }
+    </style>
+</head>
+<body>
+
+    {% if request.user.is_authenticated %}
+        {% with user_profile=request.user.perfilusuario %}
+            <div class="top-bar">
+                <div>👤 Estudiante: <span>{{ user_profile.nombre_mostrar|default:request.user.username }}</span></div>
+                <div>📅 Fecha: <span>{% now "d/m/Y" %}</span></div>
+                <div>🕒 Hora: <span id="reloj"></span></div>
+            </div>
+
+            <div class="main-container">
+                <nav class="sidebar">
+                    <div class="sidebar-logo-container">
+                        <h3 style="margin: 0;">SIPEL</h3>
+                        <img src="{% static 'img/logo.png' %}" alt="Logo" class="logo-img">
+                    </div>
+                    
+                    <div class="sidebar-menu">
+                        <a href="{% url 'inventario:registros_estudiante' %}" class="{% if request.resolver_match.url_name == 'registros_estudiante' %}active{% endif %}">
+                            <span class="icon">🏠</span> Mi Panel
+                        </a>
+                        <a href="{% url 'inventario:gestion_cursos' %}" class="{% if request.resolver_match.url_name == 'gestion_cursos' %}active{% endif %}">
+                            <span class="icon">📚</span> Catálogo de Cursos
+                        </a>
+                        <a href="{% url 'inventario:gestion_inscripciones' %}" class="{% if request.resolver_match.url_name == 'gestion_inscripciones' %}active{% endif %}">
+                            <span class="icon">📝</span> Mis Inscripciones
+                        </a>
+                        <a href="{% url 'inventario:gestion_evaluaciones' %}" class="{% if request.resolver_match.url_name == 'gestion_evaluaciones' %}active{% endif %}">
+                            <span class="icon">📊</span> Mis Evaluaciones
+                        </a>
+                        <a href="{% url 'inventario:gestion_pagos' %}" class="{% if request.resolver_match.url_name == 'gestion_pagos' %}active{% endif %}">
+                            <span class="icon">💳</span> Mis Pagos
+                        </a>
+
+                        <hr>
+                        <form action="{% url 'core:logout' %}" method="post" style="margin: 0;">
+                            {% csrf_token %}
+                            <button type="submit" style="background: none; border: none; padding: 15px 20px; width: 100%; text-align: left; cursor: pointer; color: #ff6b6b;">
+                                <span class="icon">🚪</span> Cerrar Sesión
+                            </button>
+                        </form>
+                    </div>
+                </nav>
+
+                <main class="content-area">
+                    {% block content %}{% endblock %}
+                </main>
+            </div>
+        {% endwith %}
+    {% endif %}
+
+    <script>
+        function actualizarReloj() {
+            const ahora = new Date();
+            document.getElementById('reloj').innerText = ahora.toLocaleTimeString('es-ES', {hour12: false});
+        }
+        setInterval(actualizarReloj, 1000);
+        actualizarReloj();
+    </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{% extends 'core/base_estudiante.html' %}
+{% block title %}Mis Evaluaciones{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">📊 Mis Evaluaciones</h1>
+<table class="w-full bg-white shadow rounded">
+    <thead>
+        <tr class="bg-gray-200">
+            <th class="p-4 text-left">Materia</th>
+            <th class="p-4 text-left">Calificación</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for eval in evaluaciones %}
+        <tr>
+            <td class="p-4 border-b">{{ eval.curso.nombre_curso }}</td>
+            <td class="p-4 border-b">{{ eval.calificacion }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

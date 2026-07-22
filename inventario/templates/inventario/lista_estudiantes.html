@@ -1,0 +1,42 @@
+{% extends 'core/base_instructor.html' %}
+{% load static %}
+
+{% block title %}Estudiantes Inscritos{% endblock %}
+
+{% block content %}
+<h1 class="header-title">🎓 ESTUDIANTES INSCRITOS EN MIS CURSOS</h1>
+
+<!-- Barra de Búsqueda -->
+<form method="GET" style="display: flex; gap: 10px; margin-bottom: 20px; background: #16212e; padding: 15px; border-radius: 8px;">
+    <input type="text" name="busqueda" placeholder="Buscar por nombre de estudiante..." style="flex: 3; padding: 10px; border-radius: 4px; border: none;">
+    <button type="submit" class="btn-primary" style="flex: 1; padding: 10px; border: none; cursor: pointer; background-color: #007bff; color: white;">🔍 Buscar</button>
+</form>
+
+<!-- Tabla de Estudiantes Inscritos -->
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nombre del Estudiante</th>
+            <th>Curso</th>
+            <th>Fecha de Inscripción</th>
+            <th>Email</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for ins in inscripciones %}
+        <tr>
+            <td>{{ ins.estudiante.id }}</td>
+            <td>{{ ins.estudiante.nombre_completo }}</td>
+            <td>{{ ins.curso.nombre_curso }}</td>
+            <td>{{ ins.fecha_inscripcion }}</td>
+            <td>{{ ins.estudiante.email }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" style="text-align: center;">No tienes estudiantes inscritos en tus cursos actualmente.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

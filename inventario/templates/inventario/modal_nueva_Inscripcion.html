@@ -1,0 +1,68 @@
+<div id="modalInscripcion" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center;">
+    <div style="background: #161b22; padding: 20px; border-radius: 8px; width: 450px; border: 1px solid #30363d; color: white;">
+        <h2 style="margin-top: 0;">Nueva Inscripción</h2>
+        
+        <form method="POST" action="{% url 'inventario:crear_inscripciones' %}">
+            {% csrf_token %}
+            
+            <!-- Estudiante (Desplegable) -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px;">Estudiante:</label>
+                <select name="estudiante_id" required style="width: 100%; padding: 8px; background: #0d1117; border: 1px solid #30363d; color: white; border-radius: 4px;">
+                    {% for est in estudiantes %}
+                        <option value="{{ est.estudiante_id }}">{{ est.nombre_completo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Curso (Desplegable) -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px;">Curso:</label>
+                <select name="curso_id" required style="width: 100%; padding: 8px; background: #0d1117; border: 1px solid #30363d; color: white; border-radius: 4px;">
+                    {% for cur in cursos %}
+                        <option value="{{ cur.curso_id }}">{{ cur.nombre_curso }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Instructor (Desplegable) -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px;">Instructor:</label>
+                <select name="instructor_id" required style="width: 100%; padding: 8px; background: #0d1117; border: 1px solid #30363d; color: white; border-radius: 4px;">
+                    {% for inst in instructores %}
+                        <option value="{{ inst.instructor_id }}">{{ inst.nombre_completo }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Otros Campos -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px;">Folio:</label>
+                <input type="text" name="folio_inscripcion" required style="width: 100%; padding: 8px; background: #0d1117; border: 1px solid #30363d; color: white; border-radius: 4px;">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px;">Fecha:</label>
+                <input type="date" name="fecha_inscripcion" required style="width: 100%; padding: 8px; background: #0d1117; border: 1px solid #30363d; color: white; border-radius: 4px;">
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px;">Estado:</label>
+                <select name="estado" style="width: 100%; padding: 8px; background: #0d1117; border: 1px solid #30363d; color: white; border-radius: 4px;">
+                    <option value="Activo">Activo</option>
+                    <option value="Inactivo">Inactivo</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px;">Total Pago:</label>
+                <input type="number" step="0.01" name="total_pago" required style="width: 100%; padding: 8px; background: #0d1117; border: 1px solid #30363d; color: white; border-radius: 4px;">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button type="button" onclick="document.getElementById('modalInscripcion').style.display = 'none';" style="padding: 10px 20px; background: #30363d; color: white; border: none; border-radius: 4px; cursor: pointer;">Cancelar</button>
+                <button type="submit" style="padding: 10px 20px; background: #238636; color: white; border: none; border-radius: 4px; cursor: pointer;">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>

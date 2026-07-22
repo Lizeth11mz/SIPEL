@@ -1,0 +1,81 @@
+﻿{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Editar Usuario{% endblock %}
+
+{% block content %}
+<div style="padding: 20px; color: black;">
+    <h1 class="header-title" style="color: black;">✏️ EDITAR USUARIO: {{ usuario.username }}</h1>
+
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+        <li class="{{ message.tags }}" style="list-style: none; padding: 10px; border-radius: 5px; margin-bottom: 10px; background-color: {% if 'success' in message.tags %}#d4edda{% elif 'error' in message.tags %}#f8d7da{% else %}#fff3cd{% endif %}; color: #000; border: 1px solid {% if 'error' in message.tags %}#f5c6cb{% else %}#c3e6cb{% endif %};">
+            {{ message }}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    <form action="{% url 'inventario:editar_usuario' usuario.pk %}" method="post">
+        {% csrf_token %}
+        <fieldset class="form-section" style="border: 1px solid #ccc; padding: 20px; border-radius: 8px;">
+            <legend style="color: #333; font-weight: bold; padding: 0 10px;">DATOS DEL USUARIO</legend>
+            
+            <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 15px; color: black;">
+                <div class="form-group" style="width: 20%;">
+                    <label style="display: block; font-weight: bold;">Usuario (No editable)</label>
+                    <input type="text" name="usuario" value="{{ usuario.username }}" required readonly style="width: 100%; padding: 8px; background-color: #eee; border: 1px solid #ccc; color: #555;">
+                </div>
+
+                <div class="form-group" style="width: 25%;">
+                    <label style="display: block; font-weight: bold;"># de Empleado</label>
+                    <input type="text" name="num_empleado" value="{{ num_empleado_actual|default:'' }}" style="width: 100%; padding: 8px; border: 1px solid #ccc; color: black;">
+                </div>
+
+                <div class="form-group" style="width: 25%;">
+                    <label style="display: block; font-weight: bold;">Nombre</label>
+                    <input type="text" name="nombre" value="{{ usuario.first_name }}" required style="width: 100%; padding: 8px; border: 1px solid #ccc; color: black;">
+                </div>
+
+                <div class="form-group" style="width: 25%;">
+                    <label style="display: block; font-weight: bold;">Nivel</label>
+                    <select name="nivel" style="width: 100%; padding: 8px; border: 1px solid #ccc; color: black;">
+                        <option value="1" {% if usuario.perfilusuario.nivel_acceso == 1 %}selected{% endif %}>1 (Administrador)</option>
+                        <option value="2" {% if usuario.perfilusuario.nivel_acceso == 2 %}selected{% endif %}>2 (Responsable)</option>
+                        <option value="3" {% if usuario.perfilusuario.nivel_acceso == 3 %}selected{% endif %}>3 (Jefe Almacén)</option>
+                        <option value="4" {% if usuario.perfilusuario.nivel_acceso == 4 %}selected{% endif %}>4 (Básico)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 15px; color: black;">
+                <div class="form-group" style="width: 33%;">
+                    <label style="display: block; font-weight: bold;">Apellidos</label>
+                    <input type="text" name="apellidos" value="{{ usuario.last_name }}" style="width: 100%; padding: 8px; border: 1px solid #ccc; color: black;">
+                </div>
+                <div class="form-group" style="width: 33%;">
+                    <label style="display: block; font-weight: bold;">Email</label>
+                    <input type="email" name="email" value="{{ usuario.email|default:'' }}" style="width: 100%; padding: 8px; border: 1px solid #ccc; color: black;">
+                </div>
+            </div>
+
+            <div class="form-row" style="display: flex; gap: 15px; align-items: flex-end; color: black;">
+                <div class="form-group" style="width: 30%;">
+                    <label style="display: block; font-weight: bold;">Nueva Contraseña</label>
+                    <input type="password" name="contrasena" style="width: 100%; padding: 8px; border: 1px solid #ccc;">
+                </div>
+                <div class="form-group" style="width: 30%;">
+                    <label style="display: block; font-weight: bold;">Confirmar Contraseña</label>
+                    <input type="password" name="confirmar_contrasena" style="width: 100%; padding: 8px; border: 1px solid #ccc;">
+                </div>
+                <button type="submit" style="background-color: #27ae60; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Guardar Cambios</button>
+            </div>
+        </fieldset>
+    </form>
+    
+    <div style="margin-top: 20px;">
+        <a href="{% url 'inventario:gestion_usuarios' %}" style="text-decoration: none; color: #3498db; font-weight: bold;">⬅️ Volver al Listado</a>
+    </div>
+</div>
+{% endblock %}

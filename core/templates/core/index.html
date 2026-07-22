@@ -1,0 +1,86 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIPEL | Sistema Integral para una Plataforma de Educación en Línea</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *{ margin:0; padding:0; box-sizing:border-box; }
+        body{ font-family:'Poppins',sans-serif; background:#f4f7fb; color:#333; }
+        
+        /* HEADER */
+        header{ min-height:100vh; background:linear-gradient(135deg,#003b8e,#0066cc); color:white; overflow:hidden; }
+        
+        /* NAVBAR */
+        .hero-navbar{ width:90%; margin:auto; display:flex; justify-content:space-between; align-items:center; padding:28px 0; }
+        .logo{ display:flex; align-items:center; gap:15px; }
+        .logo-img{ width:75px; }
+        .logo span{ font-size:38px; font-weight:700; }
+        nav{ display:flex; gap:35px; }
+        nav a{ color:white; text-decoration:none; font-size:18px; transition:.3s; }
+        nav a:hover{ color:#ffd54d; }
+
+        /* CONTENIDO */
+        .hero-content{ width:90%; margin:auto; display:flex; justify-content:space-between; align-items:center; padding:60px 0; }
+        .hero-text{ width:45%; }
+        .hero-text h1{ font-size:88px; font-weight:800; margin-top:8px; }
+        .linea{ width:170px; height:6px; background:#ffd54d; border-radius:20px; margin:30px 0; }
+        
+        /* BOTÓN */
+        .main-access-button{ display:inline-block; text-decoration:none; padding:18px 42px; border-radius:12px; color:white; font-size:20px; font-weight:700; background:linear-gradient(135deg,#0d6efd,#0046b5); box-shadow:0 10px 25px rgba(0,0,0,.25); transition:.35s; animation:latido 2s infinite; }
+        .main-access-button:hover{ transform:translateY(-5px) scale(1.03); }
+        @keyframes latido{ 0%{transform:scale(1);} 50%{transform:scale(1.04);} 100%{transform:scale(1);} }
+
+        /* IMAGEN */
+        .hero-image{ width:42%; position:relative; }
+        .main-image{ position:relative; z-index:1; width:100%; border-radius:22px; box-shadow:0 20px 45px rgba(0,0,0,.35); }
+
+        /* FOOTER */
+        footer{ background:#032c67; color:white; text-align:center; padding:18px; }
+
+        @media(max-width:950px){
+            .hero-navbar{ flex-direction:column; gap:20px; }
+            .hero-content{ flex-direction:column; text-align:center; }
+            .hero-text{ width:100%; }
+            .hero-image{ width:90%; margin-top:50px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="hero-navbar">
+            <div class="logo">
+                <img src="{% static 'img/logo.png' %}" class="logo-img" alt="Logo SIPEL">
+                <span>SIPEL</span>
+            </div>
+            <nav>
+                <a href="{% url 'core:index' %}">Inicio</a>
+                <a href="{% url 'core:acerca_de' %}">Acerca de</a>
+                <a href="{% url 'core:servicios' %}">Servicios</a>
+                <a href="{% url 'core:contacto' %}">Contacto</a>
+            </nav>
+        </div>
+
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1>SIPEL</h1>
+                <h2>Sistema Integral para una<br>Plataforma de Educación en Línea</h2>
+                <div class="linea"></div>
+                <p>Plataforma diseñada para administrar estudiantes, cursos, instructores, evaluaciones, pagos y reportes en un solo sistema moderno, seguro y fácil de utilizar.</p>
+                <a href="{% url 'core:bienvenido' %}" class="main-access-button">
+                    ACCEDER AL SISTEMA
+                </a>
+            </div>
+            <div class="hero-image">
+                <img src="{% static 'img/almacen-imagen.jpg' %}" alt="SIPEL" class="main-image" onerror="this.onerror=null;this.src='https://placehold.co/700x450';">
+            </div>
+        </div>
+    </header>
+
+    <footer>
+        <p>&copy; 2026 SIPEL. Todos los derechos reservados.</p>
+    </footer>
+</body>
+</html>
