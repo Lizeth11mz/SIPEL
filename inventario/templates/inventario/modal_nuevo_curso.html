@@ -1,45 +1,73 @@
-<div class="modal-content" style="background-color: #161b22; margin: 5% auto; padding: 25px; border-radius: 12px; width: 500px; color: #e6edf3; font-family: sans-serif; border: 1px solid #30363d;">
-    <!-- Encabezado -->
-    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #30363d; padding-bottom: 15px;">
-        <h2 style="margin: 0; font-size: 1.4em; color: #ffffff; font-weight: bold;">➕ Nuevo Curso</h2>
-        <span style="font-size: 24px; cursor: pointer; color: #8b949e;" onclick="closeNewCourseModal()">&times;</span>
-    </div>
-
-    <!-- Formulario -->
-    <form method="post" action="{% url 'inventario:crear_curso' %}">
-        {% csrf_token %}
+<!-- Modal para Nuevo Curso -->
+<div id="newCourseModal" class="modal-container" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+    <div class="modal-content" style="background-color: #2c3e50; margin: 3% auto; padding: 20px; border: 1px solid #888; width: 500px; border-radius: 8px; color: white;">
         
-        <div style="display: flex; flex-direction: column; gap: 15px;">
-            {% for field in form %}
-            <div class="form-group">
-                <label style="color: #8b949e; font-size: 0.9em; display: block; margin-bottom: 5px; text-transform: uppercase;">
-                    {{ field.label }}
-                </label>
-                {{ field }}
-                {% if field.errors %}
-                    <div style="color: #f85149; font-size: 0.8em; margin-top: 5px;">{{ field.errors.0 }}</div>
-                {% endif %}
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background-color: #f39c12; padding: 10px; margin: -20px -20px 20px -20px; border-radius: 8px 8px 0 0;">
+            <h2 style="margin: 0; font-size: 1.5em; color: #2c3e50;">NUEVO CURSO</h2>
+            <span style="font-size: 28px; font-weight: bold; cursor: pointer; color: #2c3e50;" onclick="closeNewCourseModal()">&times;</span>
+        </div>
+
+        <form id="formNewCourse" method="post" action="{% url 'inventario:gestion_cursos' %}">
+            {% csrf_token %}
+
+            <!-- Nombre Curso -->
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px;">Nombre del Curso:</label>
+                <input type="text" name="nombre_curso" class="form-control" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; box-sizing: border-box;" required>
             </div>
-            {% endfor %}
-        </div>
-        
-        <!-- Botones de Acción -->
-        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px;">
-            <button type="button" onclick="closeNewCourseModal()" style="padding: 10px 20px; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; cursor: pointer;">Cerrar</button>
-            <button type="submit" style="padding: 10px 20px; background: #238636; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Guardar Curso</button>
-        </div>
-    </form>
-</div>
 
-<script>
-    // Aplicar estilos a los inputs generados por Django para que coincidan con la base de datos
-    document.querySelectorAll('.modal-content input, .modal-content select').forEach(el => {
-        el.style.width = '100%';
-        el.style.padding = '10px';
-        el.style.borderRadius = '6px';
-        el.style.border = '1px solid #30363d';
-        el.style.backgroundColor = '#0d1117';
-        el.style.color = '#e6edf3';
-        el.style.boxSizing = 'border-box';
-    });
-</script>
+            <!-- Categoría -->
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px;">Categoría:</label>
+                <input type="text" name="categoria" class="form-control" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; box-sizing: border-box;" required>
+            </div>
+
+            <!-- Instructor (Con diseño seguro anti-ocultamiento de Chrome) -->
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px;">Instructor:</label>
+                <select name="instructor" class="form-control" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; box-sizing: border-box;" required>
+                    <option value="" disabled selected style="background-color: #2c3e50; color: #ffffff;">Seleccione un instructor</option>
+                    {% for inst in instructores %}
+                        <option value="{{ inst.instructor_id }}" style="background-color: #2c3e50; color: #ffffff;">{{ inst.nombre_completo }}</option>
+                    {% empty %}
+                        <option value="" disabled style="background-color: #2c3e50; color: #ffffff;">No hay instructores registrados</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Duración Horas -->
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px;">Duración (horas):</label>
+                <input type="number" name="duracion_horas" class="form-control" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; box-sizing: border-box;" required>
+            </div>
+
+            <!-- Costo -->
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px;">Costo:</label>
+                <input type="number" step="0.01" name="costo" class="form-control" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; box-sizing: border-box;" required>
+            </div>
+
+            <!-- Cupo Máximo -->
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px;">Cupo Máximo:</label>
+                <input type="number" name="cupo_maximo" class="form-control" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; box-sizing: border-box;" required>
+            </div>
+
+            <!-- Estado -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 4px;">Estado:</label>
+                <select name="estado" class="form-control" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; box-sizing: border-box;" required>
+                    <option value="Activo" selected style="background-color: #2c3e50; color: #ffffff;">Activo</option>
+                    <option value="Inactivo" style="background-color: #2c3e50; color: #ffffff;">Inactivo</option>
+                    <option value="Finalizado" style="background-color: #2c3e50; color: #ffffff;">Finalizado</option>
+                </select>
+            </div>
+            
+            <!-- Botones -->
+            <div style="text-align: right; margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="closeNewCourseModal()" style="width: 120px; padding: 10px; cursor: pointer; background: #95a5a6; border: none; color: white; border-radius: 4px;">Cerrar</button>
+                <button type="submit" style="width: 120px; padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 4px;">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>

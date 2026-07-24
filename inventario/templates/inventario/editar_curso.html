@@ -15,7 +15,7 @@
         color: #e6edf3; 
     }
     .form-group { margin-bottom: 15px; }
-    .form-group label { display: block; margin-bottom: 5px; color: #8b949e; font-size: 0.9em; }
+    .form-group label { display: block; margin-bottom: 5px; color: #8b949e; font-size: 0.9em; text-transform: uppercase; }
     .form-control { 
         width: 100%; 
         padding: 12px; 
@@ -41,13 +41,15 @@
 </style>
 
 <div class="edit-container">
-    <h2 style="margin-top: 0; color: #ffffff;">✎ Editar Curso: {{ curso.nombre_curso }}</h2>
-    <p style="color: #8b949e; font-size: 0.9em;">Actualiza los detalles del curso en el sistema.</p>
+    <!-- Encabezado limpio y fijo -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #30363d; padding-bottom: 15px;">
+        <h2 style="margin: 0; color: #ffffff; font-size: 1.4em;">✏️ Editar Curso</h2>
+        <a href="{% url 'inventario:gestion_cursos' %}" style="font-size: 24px; text-decoration: none; color: #8b949e;">&times;</a>
+    </div>
 
     <form method="POST">
         {% csrf_token %}
         
-        <!-- Renderizado manual para aplicar los estilos .form-control -->
         <div class="form-group">
             {% for field in form %}
                 <div style="margin-bottom: 15px;">
@@ -65,7 +67,7 @@
 </div>
 
 <script>
-    // Aplicar clase CSS a todos los inputs del formulario automáticamente
+    // Aplicar clase CSS a todos los inputs y selects del formulario automáticamente
     document.querySelectorAll('input, select, textarea').forEach(el => {
         el.classList.add('form-control');
     });

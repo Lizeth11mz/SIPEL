@@ -32,7 +32,7 @@
 
     <!-- Filtro Estado -->
     <select name="estado" style="background: #161b22; border: 1px solid #30363d; padding: 12px; color: white; border-radius: 8px; cursor: pointer;">
-        <option value="">Todos los estados</option>
+        <option value="" disabled selected hidden>Filtrar estado...</option>
         <option value="Activo" {% if request.GET.estado == 'Activo' %}selected{% endif %}>Activo</option>
         <option value="Inactivo" {% if request.GET.estado == 'Inactivo' %}selected{% endif %}>Inactivo</option>
     </select>
@@ -44,16 +44,17 @@
 <div style="background: #0d1117; border-radius: 12px; border: 1px solid #30363d; padding: 20px; overflow-x: auto;">
     <table style="width: 100%; border-collapse: collapse; color: white; min-width: 900px;">
         <thead>
-            <tr style="border-bottom: 1px solid #30363d; color: #8b949e; text-align: left;">
-                <th style="padding: 15px;">ID</th>
+           <tr style="border-bottom: 1px solid #30363d; color: #8b949e; text-align: left;">
+                <th style="padding: 15px; text-align: center;">Estudiante ID</th>
                 <th style="padding: 15px;">Nombre Completo</th>
-                <th style="padding: 15px;">Correo</th>
+                <th style="padding: 15px; text-align: center;">Correo</th>
                 <th style="padding: 15px;">Teléfono</th>
+                <th style="padding: 15px;">Dirección</th>
                 <!-- ENCABEZADO "Documento" -->
-                <th style="padding: 15px; text-align: left;">Documento</th>
+                <th style="padding: 15px; text-align: center;">Documento</th>
                 <th style="padding: 15px;">Estado</th>
                 <th style="padding: 15px; text-align: center;">Acciones</th>
-            </tr>
+         </tr>
         </thead>
         <tbody>
             {% for est in estudiantes %}
@@ -62,7 +63,7 @@
                 <td style="padding: 15px;">{{ est.nombre_completo }}</td>
                 <td style="padding: 15px;">{{ est.email }}</td>
                 <td style="padding: 15px;">{{ est.telefono }}</td>
-                
+                <td style="padding: 15px;">{{ est.direccion }}</td>
                 <!-- CELDA CON EL DISEÑO DE TARJETA QUE QUERÍAS -->
                 <td style="padding: 15px; text-align: left;">
                     <div style="font-weight: bold; margin-bottom: 6px; color: white; font-size: 14px; text-align: left;">

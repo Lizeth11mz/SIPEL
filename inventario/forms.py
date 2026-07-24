@@ -31,88 +31,124 @@ class CambiarContrasenaAdminForm(PasswordChangeForm):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
             field.widget.attrs.update({'class': 'form-control'})
-
 class EstudianteForm(forms.ModelForm):
     estado = forms.ChoiceField(
         choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')], 
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     
+    tipo_documento = forms.ChoiceField(
+        choices=[
+            ('INE', 'INE'),
+            ('ACTA', 'Acta de Nacimiento'),
+            ('CURP', 'CURP'),
+            ('PASAPORTE', 'Pasaporte')
+        ],
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
     class Meta:
         model = Estudiante
-        exclude = ['contrasena', 'usuario_auth']
+        # Excluimos usuario_auth y estudiante_id (este último es autoincremental en la BD)
+        exclude = ['usuario_auth', 'estudiante_id'] 
         widgets = {
             'usuario': forms.TextInput(attrs={'class': 'form-control'}),
+            'contrasena': forms.PasswordInput(attrs={'class': 'form-control'}),
             'nombre_completo': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'telefono': forms.TextInput(attrs={'class': 'form-control'}),
             'direccion': forms.TextInput(attrs={'class': 'form-control'}),
-            'tipo_documento': forms.TextInput(attrs={'class': 'form-control'}),
             'numero_documento': forms.TextInput(attrs={'class': 'form-control'}),
+            'fecha_registro': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        if 'contrasena' in self.fields:
+            self.fields['contrasena'].required = False
         if 'numero_documento' in self.fields:
             self.fields['numero_documento'].required = False
+        if 'fecha_registro' in self.fields:
+            self.fields['fecha_registro'].required = False
 
     def save(self, commit=True):
         estudiante = super().save(commit=False)
         
+        passwd_val = self.cleaned_data.get('contrasena')
+        if passwd_val:
+            if isinstance(passwd_val, str):
+                estudiante.contrasena = passwd_val.encode('utf-8')
+        else:
+            if not estudiante.pk:
+                estudiante.contrasena = b''
+
+        doc_val = self.cleaned_data.get('numero_documento')
+        if doc_val:
+            if isinstance(doc_val, str):
+                estudiante.numero_documento = doc_val.encode('utf-8')
+        
         if commit:
-            if estudiante.pk:
-                # Obtenemos dinámicamente el nombre correcto de la llave primaria de la BD (estudiante_id)
-                nombre_pk = Estudiante._meta.pk.column
-                
-                from django.db import connection
-                with connection.cursor() as cursor:
-                    cursor.execute(f"""
-                        UPDATE Estudiantes 
-                        SET usuario = %s, 
-                            nombre_completo = %s, 
-                            email = %s, 
-                            telefono = %s, 
-                            direccion = %s, 
-                            tipo_documento = %s, 
-                            estado = %s
-                        WHERE {nombre_pk} = %s
-                    """, [
-                        estudiante.usuario,
-                        estudiante.nombre_completo,
-                        estudiante.email,
-                        estudiante.telefono,
-                        estudiante.direccion,
-                        estudiante.tipo_documento,
-                        estudiante.estado,
-                        estudiante.pk
-                    ])
-            else:
-                if not estudiante.contrasena:
-                    estudiante.contrasena = b''
-                estudiante.save()
-            
+            estudiante.save()
             self.save_m2m()
             
         return estudiante
 
+
 class CursoForm(forms.ModelForm):
+    instructor = forms.ModelChoiceField(
+        queryset=Instructor.objects.all(),
+        to_field_name="instructor_id",
+        empty_label="Seleccione un instructor",
+        widget=forms.Select(attrs={
+            'style': 'width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; box-sizing: border-box;'
+        })
+    )
+
     estado = forms.ChoiceField(
-        choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')], 
-        widget=forms.Select(attrs={'class': 'form-control'})
+        choices=[
+            ('Activo', 'Activo'), 
+            ('Inactivo', 'Inactivo'),
+            ('Finalizado', 'Finalizado')
+        ], 
+        widget=forms.Select(attrs={
+            'style': 'width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; box-sizing: border-box;'
+        })
     )
 
     class Meta:
         model = Curso
-        fields = ['nombre_curso', 'categoria', 'instructor', 'duracion_horas', 'costo', 'estado', 'cupo_maximo']
+        # Excluimos curso_id para que el autoincrementable de la BD controle la secuencia
+        fields = [
+            'nombre_curso', 
+            'categoria', 
+            'instructor', 
+            'duracion_horas', 
+            'costo', 
+            'cupo_maximo', 
+            'estado'
+        ]
         widgets = {
-            'nombre_curso': forms.TextInput(attrs={'class': 'form-control'}),
-            'categoria': forms.TextInput(attrs={'class': 'form-control'}),
-            'instructor': forms.Select(attrs={'class': 'form-control'}),
-            'duracion_horas': forms.NumberInput(attrs={'class': 'form-control'}),
-            'costo': forms.NumberInput(attrs={'class': 'form-control'}),
-            'cupo_maximo': forms.NumberInput(attrs={'class': 'form-control'}),
+            'nombre_curso': forms.TextInput(attrs={
+                'style': 'width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; box-sizing: border-box;'
+            }),
+            'categoria': forms.TextInput(attrs={
+                'style': 'width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; box-sizing: border-box;'
+            }),
+            'duracion_horas': forms.NumberInput(attrs={
+                'style': 'width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; box-sizing: border-box;'
+            }),
+            'costo': forms.NumberInput(attrs={
+                'style': 'width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; box-sizing: border-box;'
+            }),
+            'cupo_maximo': forms.NumberInput(attrs={
+                'style': 'width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; box-sizing: border-box;'
+            }),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Asegura que el queryset siempre traiga los instructores actualizados de la BD
+        self.fields['instructor'].queryset = Instructor.objects.all()
 class InstructorForm(forms.ModelForm):
     estado = forms.ChoiceField(
         choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')], 
@@ -121,14 +157,25 @@ class InstructorForm(forms.ModelForm):
     
     class Meta:
         model = Instructor
-        fields = ['nombre_completo', 'especialidad', 'usuario', 'estado', 'cedula_profesional']
+        fields = [
+            'nombre_completo', 
+            'especialidad', 
+            'cedula_profesional', 
+            'email', 
+            'telefono', 
+            'direccion', 
+            'usuario', 
+            'estado'
+        ]
         widgets = {
             'nombre_completo': forms.TextInput(attrs={'class': 'form-control'}),
             'especialidad': forms.TextInput(attrs={'class': 'form-control'}),
-            'usuario': forms.TextInput(attrs={'class': 'form-control'}),
             'cedula_profesional': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'telefono': forms.TextInput(attrs={'class': 'form-control'}),
+            'direccion': forms.TextInput(attrs={'class': 'form-control'}),
+            'usuario': forms.TextInput(attrs={'class': 'form-control'}),
         }
-
 class InscripcionForm(forms.ModelForm):
     estado = forms.ChoiceField(choices=ESTADO_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
     

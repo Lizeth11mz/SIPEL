@@ -17,7 +17,19 @@
     .table-container { background: #161b22; border-radius: 12px; border: 1px solid #30363d; padding: 20px; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; color: #e6edf3; }
     th { color: #8b949e; border-bottom: 2px solid #30363d; padding: 15px; text-align: left; }
-    td { padding: 15px; border-bottom: 1px solid #30363d; }
+    td { padding: 15px; border-bottom: 1px solid #30363d; vertical-align: middle; }
+
+    /* Estilo ampliado sin barra de desplazamiento, muestra todo hacia abajo */
+    .document-preview-box {
+        background: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 8px;
+        font-size: 0.75em;
+        color: #8b949e;
+        word-break: break-all;
+        white-space: pre-wrap;
+    }
 </style>
 
 <div class="page-container">
@@ -65,7 +77,9 @@
                     <th>NOMBRE</th>
                     <th>ESPECIALIDAD</th>
                     <th>CÉDULA PROFESIONAL</th>
-                    <th>USUARIO</th>
+                    <th>CORREO</th>
+                    <th>TELÉFONO</th>
+                    <th>DIRECCIÓN</th>
                     <th>ESTADO</th>
                     <th>ACCIONES</th>
                 </tr>
@@ -73,12 +87,18 @@
             <tbody>
                 {% for instructor in instructores %}
                 <tr>
-                    <!-- Corregido: instructor.instructor_id en lugar de instructor.id -->
                     <td>{{ instructor.instructor_id }}</td>
                     <td>{{ instructor.nombre_completo }}</td>
                     <td>{{ instructor.especialidad }}</td>
-                    <td>{{ instructor.cedula_profesional }}</td>
-                    <td>{{ instructor.usuario }}</td>
+                    <td style="min-width: 250px;">
+                        <div style="font-size: 0.85em; font-weight: bold; color: #8b949e; margin-bottom: 4px;">Cédula</div>
+                        <div class="document-preview-box">
+                            {{ instructor.cedula_profesional }}
+                        </div>
+                    </td>
+                    <td>{{ instructor.email|default:"N/A" }}</td>
+                    <td>{{ instructor.telefono|default:"N/A" }}</td>
+                    <td>{{ instructor.direccion|default:"N/A" }}</td>
                     <td>
                         <span style="padding: 4px 10px; border-radius: 12px; font-weight: bold; 
                             {% if instructor.estado == 'Activo' %}background: #1a3a2a; color: #3fb950;
@@ -87,7 +107,7 @@
                         </span>
                     </td>
                     <td>
-                        <!-- Botón Editar corregido con instructor.instructor_id -->
+                        <!-- Botón Editar -->
                         <a href="{% url 'inventario:editar_instructor' instructor.instructor_id %}" style="text-decoration: none; color: #e6edf3; background: #21262d; border: 1px solid #30363d; padding: 5px 10px; border-radius: 4px;">✏️</a>
                         
                         <!-- Botón Eliminar -->

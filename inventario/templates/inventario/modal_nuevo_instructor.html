@@ -7,59 +7,34 @@
         </div>
 
         <form method="post" action="{% url 'inventario:crear_instructor' %}">
-            {% csrf_token %}
+            {% csrf_token %>
 
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label>Usuario del Sistema</label>
-                <select name="usuario_id" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
-                    <option value="" disabled selected>Seleccione un usuario...</option>
-                    {% for user in usuarios %}
-                        <option value="{{ user.id }}">{{ user.username }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- Fila: Nombre y Apellidos -->
+            <!-- Fila: Nombre y Apellidos (Para formar nombre_completo) -->
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                 <div style="flex: 1;"><label>Nombre</label><input type="text" name="nombre" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
                 <div style="flex: 1;"><label>Ap. Paterno</label><input type="text" name="apellido_paterno" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
                 <div style="flex: 1;"><label>Ap. Materno</label><input type="text" name="apellido_materno" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
             </div>
 
-            <!-- Fila: Especialidad y Teléfono -->
+            <!-- Fila: Correo y Teléfono -->
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <div style="flex: 1;"><label>Especialidad</label><input type="text" name="especialidad" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
+                <div style="flex: 1;"><label>Correo (Email)</label><input type="email" name="email" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
                 <div style="flex: 1;"><label>Teléfono</label><input type="text" name="telefono" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
             </div>
 
+            <!-- Fila: Especialidad y Cédula Profesional -->
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div style="flex: 1;"><label>Especialidad</label><input type="text" name="especialidad" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
+                <div style="flex: 1;"><label>Cédula Profesional</label><input type="text" name="cedula_profesional" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
+            </div>
+
+            <!-- Dirección -->
             <div class="form-group" style="margin-bottom: 15px;">
                 <label>Dirección</label>
                 <input type="text" name="direccion" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
             </div>
 
-            <!-- Fila: Tipo Documento y Número de Identificación -->
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <div style="flex: 1;">
-                    <label>Tipo Documento</label>
-                    <select name="tipo_documento" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
-                        <option value="INE">INE</option>
-                        <option value="CURP">CURP</option>
-                        <option value="Pasaporte">Pasaporte</option>
-                        <option value="Cedula">Cédula Profesional</option>
-                        <option value="Acta_Nacimiento">Acta de Nacimiento</option>
-                    </select>
-                </div>
-                <div style="flex: 1;">
-                    <label>Número de Identificación</label>
-                    <input type="text" name="numero_documento" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label>Número de Cédula Profesional</label>
-                <input type="text" name="cedula" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
-            </div>
-
+            <!-- Estado -->
             <div class="form-group" style="margin-bottom: 15px;">
                 <label>Estado</label>
                 <select name="estado" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
@@ -68,6 +43,7 @@
                 </select>
             </div>
             
+            <!-- Botones -->
             <div style="text-align: right; margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
                 <button type="button" class="btn-cancelar" onclick="closeNewInstructorModal()" style="width: 120px; padding: 10px; cursor: pointer; background: #95a5a6; border: none; color: white;">Cerrar</button>
                 <button type="submit" class="btn-primary" style="width: 120px; padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer;">Guardar</button>

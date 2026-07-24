@@ -13,6 +13,9 @@ ESTADO_CHOICES = [
 ]
 
 # --- Modelos de Escuela (SIPEL) ---
+from django.db import models
+from django.contrib.auth.models import User
+
 class Estudiante(models.Model):
     estudiante_id = models.AutoField(primary_key=True)
     # Relación uno a uno con el usuario nativo de Django
@@ -34,19 +37,24 @@ class Estudiante(models.Model):
 
 class Instructor(models.Model):
     instructor_id = models.AutoField(primary_key=True)
-    usuario_auth = models.OneToOneField(User, on_delete=models.CASCADE, db_column='usuario_id', null=True, blank=True)
     nombre_completo = models.CharField(max_length=100, blank=True, null=True)
     especialidad = models.CharField(max_length=50, blank=True, null=True)
-    cedula_profesional = models.CharField(max_length=50, blank=True, null=True) 
+    cedula_profesional = models.CharField(max_length=50, blank=True, null=True)
+    email = models.CharField(max_length=100, blank=True, null=True)
+    telefono = models.CharField(max_length=20, blank=True, null=True)
+    direccion = models.CharField(max_length=255, blank=True, null=True)
     usuario = models.CharField(max_length=50, unique=True, blank=True, null=True)
     contrasena = models.BinaryField(blank=True, null=True) 
     estado = models.CharField(max_length=20, default='Activo', blank=True, null=True)
 
+    def __str__(self):
+        return self.nombre_completo or f"Instructor {self.instructor_id}"
+
     class Meta:
         managed = False
         db_table = 'Instructores'
-
 # --- Señales (Signals) ---
+
 
 @receiver(post_save, sender=Estudiante)
 def crear_user_estudiante(sender, instance, created, **kwargs):
@@ -108,21 +116,31 @@ def crear_user_instructor(sender, instance, created, **kwargs):
 
         # Guardamos la relación de forma segura usando update para evitar bucles con managed = False
         Instructor.objects.filter(pk=instance.pk).update(usuario_auth=user)
+from django.db import models
 
 class Curso(models.Model):
     curso_id = models.AutoField(primary_key=True)
     nombre_curso = models.CharField(max_length=100)
     categoria = models.CharField(max_length=50)
-    instructor = models.ForeignKey(Instructor, on_delete=models.DO_NOTHING, db_column='instructor_id')
+    instructor = models.ForeignKey('Instructor', on_delete=models.DO_NOTHING, db_column='instructor_id')
     duracion_horas = models.IntegerField()
     costo = models.DecimalField(max_digits=10, decimal_places=2)
-    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='Activo')
+    estado = models.CharField(max_length=20, default='Activo') # Ajusta ESTADO_CHOICES si lo tienes definido arriba
     cupo_maximo = models.IntegerField()
+    cupo_disponible = models.IntegerField(null=True, blank=True)  # Ya existe físicamente en SQL
+
+    @property
+    def cupo_calc(self):  
+        try:
+            inscritos_activos = self.inscripcion_set.count()
+            return self.cupo_maximo - inscritos_activos
+        except Exception:
+            return self.cupo_maximo
 
     class Meta:
         managed = False
         db_table = 'Cursos'
-
+        
 class Inscripcion(models.Model):
     inscripcion_id = models.AutoField(primary_key=True)
     estudiante = models.ForeignKey(Estudiante, on_delete=models.DO_NOTHING, db_column='estudiante_id')

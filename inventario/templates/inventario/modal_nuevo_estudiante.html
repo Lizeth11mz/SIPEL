@@ -9,12 +9,6 @@
         <form method="post" action="{% url 'inventario:crear_estudiantes' %}">
             {% csrf_token %}
 
-            <!-- Estudiante ID -->
-            <div style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 4px;">estudiante_id:</label>
-                <input type="text" name="estudiante_id" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
-            </div>
-
             <!-- Usuario -->
             <div style="margin-bottom: 12px;">
                 <label style="display: block; margin-bottom: 4px;">usuario:</label>
@@ -68,7 +62,13 @@
                 </div>
             </div>
 
-            <!-- Estado (Despliegue Activo / Inactivo) -->
+            <!-- Fecha Registro -->
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px;">fecha_registro:</label>
+                <input type="date" name="fecha_registro" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
+            </div>
+
+            <!-- Estado -->
             <div style="margin-bottom: 15px;">
                 <label style="display: block; margin-bottom: 4px;">estado:</label>
                 <select name="estado" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
@@ -80,7 +80,7 @@
             <!-- Botones -->
             <div style="text-align: right; margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
                 <button type="button" onclick="closeNewStudentModal()" style="width: 120px; padding: 10px; cursor: pointer; background: #95a5a6; border: none; color: white; border-radius: 4px;">Cerrar</button>
-                <button type="submit" style="width: 120px; padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 4px;">Guardar</button>
+                <button type="button" onclick="document.querySelector('#newStudentModal form').submit();" style="width: 120px; padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 4px;">Guardar</button>
             </div>
         </form>
     </div>
