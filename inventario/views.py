@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.models import User
 from django.db import connection
+from django.db.models import Q
 from django.db import transaction 
 from core.decorators import role_required 
 from django.contrib.auth.forms import UserCreationForm
@@ -14,10 +15,7 @@ from django.contrib.auth import update_session_auth_hash
 from .utils import cifrar_dato
 from .models import Estudiante, Curso, Inscripcion, Pago, Instructor, Evaluacion
 from .forms import EstudianteForm, CursoForm, InstructorForm, InscripcionForm,CambiarContrasenaAdminForm
-from django.contrib.auth.models import Group
-from django.conf import settings
-import base64
-import pyodbc
+
 # --- VISTAS POR ROL ---
 @login_required
 @role_required(allowed_roles=['Estudiante'])
@@ -129,9 +127,17 @@ def gestion_estudiantes(request):
 
     usuarios = User.objects.filter(groups__name='Estudiante')
 
+    # Cálculo correcto de estadísticas para las tarjetas de la vista
+    total_estudiantes = len(estudiantes)
+    total_activos = sum(1 for e in estudiantes if str(e.get('estado', '')).capitalize() == 'Activo')
+    total_inactivos = sum(1 for e in estudiantes if str(e.get('estado', '')).capitalize() == 'Inactivo')
+
     return render(request, 'inventario/estudiantes.html', {
         'estudiantes': estudiantes, 
-        'usuarios': usuarios
+        'usuarios': usuarios,
+        'total_estudiantes': total_estudiantes,
+        'total_activos': total_activos,
+        'total_inactivos': total_inactivos,
     })
 
 @login_required
@@ -144,36 +150,14 @@ def crear_estudiantes(request):
         email = request.POST.get('email')
         estado_val = request.POST.get('estado', 'Activo')
         num_doc = request.POST.get('numero_documento', '').strip()
-        fecha_reg = request.POST.get('fecha_registro')
-        telefono = request.POST.get('telefono', '').strip()
-        direccion = request.POST.get('direccion', '').strip()
-        tipo_doc = request.POST.get('tipo_documento', '').strip()
-        # Nota: Ya no capturamos 'estudiante_id' porque es autoincremental en la base de datos.
 
         try:
             with transaction.atomic():
-                partes_nombre = nombre.split(' ', 1) if nombre else ['', '']
-                first_name = partes_nombre[0]
-                last_name = partes_nombre[1] if len(partes_nombre) > 1 else ''
-
-                # 1. Crear usuario de autenticación de Django
-                user = User.objects.create_user(
-                    username=username, 
-                    email=email,
-                    first_name=first_name,
-                    last_name=last_name
-                )
+                user = User.objects.create_user(username=username, email=email)
                 user.set_password(password)
                 user.save()
 
-                # Asignar grupo de permisos
-                grupo_estudiante, created = Group.objects.get_or_create(name='Estudiante')
-                user.groups.add(grupo_estudiante)
-
-                # 2. Cifrar contraseña y documento en formato BYTES nativo (varbinary)
-                contra_bytes = cifrar_dato(password) if 'cifrar_dato' in globals() else password.encode('utf-8')
-                if not isinstance(contra_bytes, bytes):
-                    contra_bytes = str(contra_bytes).encode('utf-8')
+                contra_cifrada = password.encode('utf-8') if password else b''
 
                 if num_doc:
                     doc_bytes = cifrar_dato(num_doc) if 'cifrar_dato' in globals() else num_doc.encode('utf-8')
@@ -186,14 +170,13 @@ def crear_estudiantes(request):
                 Estudiante.objects.create(
                     usuario_auth=user,
                     usuario=username,
-                    contrasena=contra_bytes,  # Formato bytes para varbinary(MAX)
+                    contrasena=contra_cifrada,
                     nombre_completo=nombre,
                     email=email,
-                    telefono=telefono if telefono else None,
-                    direccion=direccion if direccion else None,
-                    tipo_documento=tipo_doc,
-                    numero_documento=doc_bytes,  # Formato bytes para varbinary(MAX)
-                    fecha_registro=fecha_reg if fecha_reg else None,
+                    telefono=request.POST.get('telefono'),
+                    direccion=request.POST.get('direccion'),
+                    tipo_documento=request.POST.get('tipo_documento'),
+                    numero_documento=doc_cifrado,
                     estado=estado_val
                 )
                 messages.success(request, 'Estudiante registrado correctamente.')
@@ -205,6 +188,9 @@ def crear_estudiantes(request):
             messages.error(request, f'Error al registrar: {e}')
             
     return redirect('inventario:gestion_estudiantes')
+
+# Alias para compatibilidad por si tus urls llaman a registrar_estudiante
+registrar_estudiante = crear_estudiantes
 @login_required
 def editar_estudiante(request, estudiante_id):
     estudiante = get_object_or_404(Estudiante, pk=estudiante_id)
@@ -213,11 +199,25 @@ def editar_estudiante(request, estudiante_id):
         form = EstudianteForm(request.POST, instance=estudiante)
         
         if form.is_valid():
-            # Como la contraseña ya está excluida en el formulario, 
-            # form.save() actualizará los datos de manera limpia.
-            estudiante_actualizado = form.save()
+            estudiante_actualizado = form.save(commit=False)
             
-            # Sincronizamos los datos básicos en el modelo User de Django asociado (si aplica)
+            # --- ASEGURAR EL CAMPO USUARIO ---
+            if not estudiante_actualizado.usuario:
+                estudiante_actualizado.usuario = estudiante.usuario
+            # ---------------------------------
+            
+            # Verificamos si el usuario escribió un nuevo número de documento
+            nuevo_num_doc = request.POST.get('numero_documento', '').strip()
+            
+            if not nuevo_num_doc:
+                estudiante_actualizado.numero_documento = estudiante.numero_documento
+            else:
+                if isinstance(nuevo_num_doc, str):
+                    estudiante_actualizado.numero_documento = nuevo_num_doc.encode('utf-8')
+            
+            estudiante_actualizado.save()
+            form.save_m2m() 
+            
             if hasattr(estudiante_actualizado, 'usuario_auth') and estudiante_actualizado.usuario_auth:
                 user = estudiante_actualizado.usuario_auth
                 partes = estudiante_actualizado.nombre_completo.strip().split(' ', 1)
@@ -242,12 +242,9 @@ def eliminar_estudiante(request, estudiante_id):
     estudiante = get_object_or_404(Estudiante, pk=estudiante_id)
     
     if request.method == 'POST':
-        # Opcional pero recomendado: Si quieres borrar también el usuario de auth_user asociado
         usuario_auth = estudiante.usuario_auth
-        
         estudiante.delete()
         
-        # Eliminamos el usuario de auth_user para que no quede huérfano en la tabla de sistema
         if usuario_auth:
             usuario_auth.delete()
             
@@ -255,6 +252,7 @@ def eliminar_estudiante(request, estudiante_id):
         return redirect('inventario:gestion_estudiantes')
         
     return render(request, 'inventario/confirmar_eliminacion.html', {'objeto': estudiante, 'tipo': 'estudiante'})
+
 # --- GESTIÓN CURSOS ---
 @login_required
 def gestion_cursos(request):
@@ -278,96 +276,17 @@ def gestion_cursos(request):
     else:
         form = CursoForm()
 
-    # Obtenemos los datos de conexión directamente desde settings.py
-    db_config = settings.DATABASES['default']
-    server = db_config['HOST']
-    database = db_config['NAME']
-    driver = db_config['OPTIONS']['driver']
-    extra_params = db_config['OPTIONS'].get('extra_params', '')
-
-    conexion_str = f'DRIVER={driver};SERVER={server};DATABASE={database};{extra_params}'
+    base_queryset = Curso.objects.all() if request.user.is_superuser else Curso.objects.filter(instructor__usuario=request.user)
     
-    conexion = pyodbc.connect(conexion_str)
-    cursor = conexion.cursor()
-
-    query_busqueda = request.GET.get('q', '').strip()
-    estado_filtro = request.GET.get('estado', '').strip()
-
-    query = "SELECT curso_id, nombre_curso, categoria, Instructor, duracion_horas, costo, cupo_maximo, cupo_disponible, estado FROM Vista_Cursos WHERE 1=1"
-    params = []
-
-    if query_busqueda:
-        query += " AND nombre_curso LIKE ?"
-        params.append(f"%{query_busqueda}%")
-
-    if estado_filtro:
-        query += " AND estado = ?"
-        params.append(estado_filtro)
-
-    cursor.execute(query, params)
-    
-    columnas = [column[0] for column in cursor.description]
-    cursos_raw = [dict(zip(columnas, row)) for row in cursor.fetchall()]
-
-    cursos = []
-    for c in cursos_raw:
-        try:
-            curso_obj = Curso.objects.get(pk=c['curso_id'])
-            c['cupo_calc'] = curso_obj.cupo_calc
-        except Curso.DoesNotExist:
-            c['cupo_calc'] = c['curso_maximo']
-        cursos.append(c)
-
-    # Totales estadísticos
-    cursor.execute("SELECT COUNT(*) FROM Vista_Cursos")
-    total_cursos = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM Vista_Cursos WHERE estado = 'Activo'")
-    total_activos = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM Vista_Cursos WHERE estado = 'Inactivo'")
-    total_inactivos = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM Vista_Cursos WHERE estado = 'Finalizado'")
-    total_finalizados = cursor.fetchone()[0]
-
-    cursor.execute("SELECT SUM(costo) FROM Vista_Cursos")
-    costo_total_res = cursor.fetchone()[0]
-    costo_total = costo_total_res if costo_total_res is not None else 0
-
-    cursor.close()
-    conexion.close()
-
     context = {
-        'cursos': cursos,
+        'cursos': base_queryset,
         'form': form,
-        'instructores': instructores,  # <- Garantizado en el contexto
-        'total_cursos': total_cursos,
-        'total_activos': total_activos,
-        'total_inactivos': total_inactivos,
-        'total_finalizados': total_finalizados,
-        'costo_total': costo_total
+        'total_cursos': base_queryset.count(),
+        'total_activos': base_queryset.filter(estado='Activo').count(),
+        'costo_total': base_queryset.aggregate(Sum('costo'))['costo__sum'] or 0
     }
     
     return render(request, 'inventario/cursos.html', context)
-
-@login_required
-@role_required(allowed_roles=['Admin'])
-def crear_curso(request):
-    if request.method == 'POST':
-        Curso.objects.create(
-            nombre_curso=request.POST.get('nombre'),
-            categoria=request.POST.get('categoria'),
-            duracion_horas=request.POST.get('duracion'),
-            costo=request.POST.get('costo'),
-            estado=request.POST.get('estado'),
-            cupo=request.POST.get('cupo'),
-            instructor_id=request.POST.get('instructor')
-        )
-        messages.success(request, 'Curso registrado.')
-    return redirect('inventario:gestion_cursos')
-
-
 
 @login_required
 @role_required(allowed_roles=['Admin'])
@@ -378,49 +297,18 @@ def editar_curso(request, curso_id):
     if request.method == 'POST':
         form = CursoForm(request.POST, instance=curso)
         if form.is_valid():
-            # Interceptamos la instancia para calcular datos adicionales antes de guardar
-            curso_actualizado = form.save(commit=False)
-            
-            # Cálculo automático del cupo disponible
-            inscritos_activos = curso_actualizado.inscripcion_set.count()
-            curso_actualizado.cupo_disponible = max(0, curso_actualizado.cupo_maximo - inscritos_activos)
-            
-            # Forzamos una actualización directa a nivel de base de datos (UPDATE puro)
-            # Esto evita por completo cualquier confusión de Django con el modelo managed=False
-            Curso.objects.filter(pk=curso_id).update(
-                nombre_curso=curso_actualizado.nombre_curso,
-                categoria=curso_actualizado.categoria,
-                instructor=curso_actualizado.instructor,
-                duracion_horas=curso_actualizado.duracion_horas,
-                costo=curso_actualizado.costo,
-                estado=curso_actualizado.estado,
-                cupo_maximo=curso_actualizado.cupo_maximo,
-                cupo_disponible=curso_actualizado.cupo_disponible
-            )
-            
-            messages.success(request, 'Curso actualizado correctamente.')
+            form.save()
+            messages.success(request, 'Curso actualizado.')
             return redirect('inventario:gestion_cursos')
+        else:
+            # ESTO TE PERMITIRÁ VER EL ERROR EXACTO EN LA TERMINAL DE DJANGO
+            print("Errores en el formulario de curso:", form.errors)
+            messages.error(
+                request, 'Por favor, corrige los errores en el formulario.'
+            )
     else:
         form = CursoForm(instance=curso)
-        
     return render(request, 'inventario/editar_curso.html', {'form': form, 'curso': curso})
-@login_required
-@role_required(allowed_roles=['Admin'])
-def eliminar_curso(request, curso_id):
-    # Buscamos el curso a eliminar
-    curso = get_object_or_404(Curso, pk=curso_id)
-    
-    if request.method == 'POST':
-        try:
-            with transaction.atomic():
-                curso.delete()
-            messages.success(request, 'Curso eliminado correctamente.')
-        except Exception as e:
-            messages.error(request, f'No se pudo eliminar el curso (puede tener inscripciones asociadas): {e}')
-            
-    return redirect('inventario:gestion_cursos')
-
-
 
 # --- GESTIÓN PAGOS ---
 @login_required
@@ -435,8 +323,35 @@ def gestion_instructores(request):
     instructores = Instructor.objects.all()
     return render(request, 'inventario/instructores.html', {'instructores': instructores})
 
+# --- INSCRIPCIONES ---
+@login_required
+@role_required(allowed_roles=['Admin', 'Estudiante'])
+def gestion_inscripciones(request):
+    inscripciones = Inscripcion.objects.all()
+    estudiantes = Estudiante.objects.all()
+    cursos = Curso.objects.all()
+    instructores = Instructor.objects.all()
+    
+    return render(request, 'inventario/inscripciones.html', {
+        'inscripciones': inscripciones,
+        'estudiantes': estudiantes,
+        'cursos': cursos,
+        'instructores': instructores,
+    })
 
-
+@login_required
+@role_required(allowed_roles=['Admin'])
+def editar_inscripcion(request, inscripcion_id):
+    inscripcion = get_object_or_404(Inscripcion, pk=inscripcion_id)
+    if request.method == 'POST':
+        form = InscripcionForm(request.POST, instance=inscripcion)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Inscripción actualizada correctamente.')
+            return redirect('inventario:gestion_inscripciones')
+    else:
+        form = InscripcionForm(instance=inscripcion)
+    return render(request, 'inventario/editar_inscripcion.html', {'form': form, 'inscripcion': inscripcion})
 
 # --- EVALUACIONES Y OTROS ---
 @login_required
@@ -466,9 +381,7 @@ def custom_logout_view(request):
     logout(request)
     return redirect('core:index')
 
-
-
-# --- Instructores ---
+# --- FUNCIONES ADICIONALES ---
 
 @login_required
 @role_required(allowed_roles=['Admin'])
@@ -498,11 +411,42 @@ def crear_instructor(request):
             messages.error(request, f'Error al registrar: {e}')
     return redirect('inventario:gestion_instructores')
 
-# Alias para compatibilidad por si tus urls llaman a registrar_instructor
 registrar_instructor = crear_instructor
 
+@login_required
+@role_required(allowed_roles=['Admin'])
+def crear_curso(request):
+    if request.method == 'POST':
+        Curso.objects.create(
+            nombre_curso=request.POST.get('nombre'),
+            categoria=request.POST.get('categoria'),
+            duracion_horas=request.POST.get('duracion'),
+            costo=request.POST.get('costo'),
+            estado=request.POST.get('estado'),
+            cupo=request.POST.get('cupo'),
+            instructor_id=request.POST.get('instructor')
+        )
+        messages.success(request, 'Curso registrado.')
+    return redirect('inventario:gestion_cursos')
 
+@login_required
+@role_required(allowed_roles=['Admin'])
+def eliminar_inscripcion(request, inscripcion_id):
+    inscripcion = get_object_or_404(Inscripcion, pk=inscripcion_id)
+    if request.method == 'POST':
+        inscripcion.delete()
+        messages.success(request, 'Inscripción eliminada.')
+    return redirect('inventario:gestion_inscripciones')
 
+@login_required
+@role_required(allowed_roles=['Admin'])
+def crear_inscripciones(request):
+    if request.method == 'POST':
+        form = InscripcionForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Inscripción creada.')
+    return redirect('inventario:gestion_inscripciones')
 
 @login_required
 @role_required(allowed_roles=['Admin'])
@@ -527,72 +471,44 @@ def eliminar_instructor(request, instructor_id):
         return redirect('inventario:gestion_instructores')
     return render(request, 'inventario/confirmar_eliminacion.html', {'objeto': instructor, 'tipo': 'instructor'})
 
-#-----------INSCRIPCIONES -----------------------------
-@login_required
-@role_required(allowed_roles=['Admin', 'Estudiante'])
-def gestion_inscripciones(request):
-    inscripciones = Inscripcion.objects.all()
-    estudiantes = Estudiante.objects.all()
-    cursos = Curso.objects.all()
-    instructores = Instructor.objects.all()
-    
-    return render(request, 'inventario/inscripciones.html', {
-        'inscripciones': inscripciones,
-        'estudiantes': estudiantes,
-        'cursos': cursos,
-        'instructores': instructores,
-    })
-
-
 @login_required
 @role_required(allowed_roles=['Admin'])
-def crear_inscripciones(request):
+def eliminar_curso(request, curso_id):
+    curso = get_object_or_404(Curso, pk=curso_id)
     if request.method == 'POST':
-        form = InscripcionForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Inscripción creada.')
-    return redirect('inventario:gestion_inscripciones')
-
-
-@login_required
-@role_required(allowed_roles=['Admin'])
-def editar_inscripcion(request, inscripcion_id):
-    inscripcion = get_object_or_404(Inscripcion, pk=inscripcion_id)
-    if request.method == 'POST':
-        form = InscripcionForm(request.POST, instance=inscripcion)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Inscripción actualizada correctamente.')
-            return redirect('inventario:gestion_inscripciones')
-    else:
-        form = InscripcionForm(instance=inscripcion)
-    return render(request, 'inventario/editar_inscripcion.html', {'form': form, 'inscripcion': inscripcion})
-
-
-@login_required
-@role_required(allowed_roles=['Admin'])
-def eliminar_inscripcion(request, inscripcion_id):
-    inscripcion = get_object_or_404(Inscripcion, pk=inscripcion_id)
-    if request.method == 'POST':
-        inscripcion.delete()
-        messages.success(request, 'Inscripción eliminada.')
-    return redirect('inventario:gestion_inscripciones')
-
-
-#--------REPORTES----------------------
+        curso.delete()
+        messages.success(request, 'Curso eliminado.')
+        return redirect('inventario:gestion_cursos')
+    return render(request, 'inventario/confirmar_eliminacion.html', {'objeto': curso, 'tipo': 'curso'})
 
 @login_required
 @role_required(allowed_roles=['Admin'])
 def reportes_view(request):
     return render(request, 'inventario/reportes.html')
-#------------USUARIOS----------------------------------
+
 @login_required
 @role_required(allowed_roles=['Admin'])
 def gestion_usuarios(request):
-    usuarios = User.objects.select_related('perfil').all() 
+    usuarios = User.objects.all().order_by('id')
+    
+    # Capturar filtros de la URL
+    query = request.GET.get('q')
+    estado = request.GET.get('estado')
+    
+    if query:
+        usuarios = usuarios.filter(
+            Q(username__icontains=query) | 
+            Q(first_name__icontains=query) | 
+            Q(last_name__icontains=query) |
+            Q(email__icontains=query)
+        )
+        
+    if estado == 'activo':
+        usuarios = usuarios.filter(is_active=True)
+    elif estado == 'inactivo':
+        usuarios = usuarios.filter(is_active=False)
+        
     return render(request, 'admin_sistema/usuarios.html', {'usuarios': usuarios})
-
 def crear_usuario(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
@@ -620,22 +536,17 @@ def eliminar_usuario(request, usuario_id):
 
 @login_required
 def cambiar_contrasena_usuario(request, user_id):
-    # Buscamos al usuario al que se le cambiará la contraseña
     usuario_obj = get_object_or_404(User, pk=user_id)
     
     if request.method == 'POST':
-        # Pasamos el usuario y los datos del POST al formulario
         form = CambiarContrasenaAdminForm(user=usuario_obj, data=request.POST)
         if form.is_valid():
             user = form.save()
             
-            # Si el usuario cambia su propia contraseña, esto evita que su sesión se cierre
             if request.user.pk == user.pk:
                 update_session_auth_hash(request, user)
                 
             messages.success(request, "¡Contraseña actualizada correctamente!")
-            
-            # Cambia esta ruta por la URL a donde quieras redirigir después de guardarla
             return redirect('inventario:gestion_usuarios') 
     else:
         form = CambiarContrasenaAdminForm(user=usuario_obj)
@@ -646,5 +557,8 @@ def cambiar_contrasena_usuario(request, user_id):
         'titulo': f"Cambiar Contraseña de {usuario_obj.username}"
     }
     
-    # Puedes usar tu plantilla genérica de formularios o una específica
     return render(request, 'inventario/form.html', context)
+
+def custom_logout_view(request):
+    logout(request)
+    return redirect('core:index')

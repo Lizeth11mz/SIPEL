@@ -18,7 +18,7 @@ from django.contrib.auth.models import User
 
 class Estudiante(models.Model):
     estudiante_id = models.AutoField(primary_key=True)
-    # Relación uno a uno con el usuario nativo de Django
+    # Relación uno a uno con el usuario nativo de Django apuntando a 'usuario_id'
     usuario_auth = models.OneToOneField(User, on_delete=models.CASCADE, db_column='usuario_id', null=True, blank=True)
     usuario = models.CharField(max_length=50, blank=True, null=True)
     contrasena = models.BinaryField(blank=True, null=True) 
@@ -31,12 +31,56 @@ class Estudiante(models.Model):
     fecha_registro = models.DateTimeField(blank=True, null=True)
     estado = models.CharField(max_length=20, default='Activo', blank=True, null=True)
 
+    def save(self, *args, **kwargs):
+        # Asegurar que el campo 'usuario' nunca vaya nulo si existe un usuario de autenticación
+        if not self.usuario and self.usuario_auth:
+            self.usuario = self.usuario_auth.username
+        
+        # Si aún sigue vacío por alguna razón, buscamos el valor actual directamente en la base de datos
+        if not self.usuario and self.pk:
+            estudiante_antiguo = Estudiante.objects.filter(pk=self.pk).first()
+            if estudiante_antiguo:
+                self.usuario = estudiante_antiguo.usuario
+
+        # Verificamos si aún no tiene un 'usuario_auth' vinculado, y si existen 'usuario' y 'email'
+        if not self.usuario_auth_id and self.usuario and self.email:
+            
+            raw_password = "PasswordPorDefecto123"
+            if self.contrasena:
+                if isinstance(self.contrasena, bytes):
+                    try:
+                        raw_password = self.contrasena.decode('utf-8')
+                    except UnicodeDecodeError:
+                        raw_password = str(self.contrasena)
+                else:
+                    raw_password = str(self.contrasena)
+
+            user = User(
+                username=self.usuario,
+                email=self.email,
+                first_name=self.nombre_completo.split(' ')[0] if self.nombre_completo else ""
+            )
+            user.set_password(raw_password)
+            user.save()
+            
+            grupo, _ = Group.objects.get_or_create(name='Estudiante')
+            user.groups.add(grupo)
+            
+            self.usuario_auth = user
+        super().save(*args, **kwargs)
+
     class Meta:
         managed = False
         db_table = 'Estudiantes'
 
+    def __str__(self):
+        return self.nombre_completo or f"Estudiante #{self.estudiante_id}"
+
+
+
 class Instructor(models.Model):
     instructor_id = models.AutoField(primary_key=True)
+    usuario_auth = models.OneToOneField(User, on_delete=models.CASCADE, db_column='usuario_id', null=True, blank=True)
     nombre_completo = models.CharField(max_length=100, blank=True, null=True)
     especialidad = models.CharField(max_length=50, blank=True, null=True)
     cedula_profesional = models.CharField(max_length=50, blank=True, null=True)
@@ -44,17 +88,16 @@ class Instructor(models.Model):
     telefono = models.CharField(max_length=20, blank=True, null=True)
     direccion = models.CharField(max_length=255, blank=True, null=True)
     usuario = models.CharField(max_length=50, unique=True, blank=True, null=True)
-    contrasena = models.BinaryField(blank=True, null=True) 
+    contrasena = models.BinaryField(blank=True, null=True)
     estado = models.CharField(max_length=20, default='Activo', blank=True, null=True)
 
     def __str__(self):
         return self.nombre_completo or f"Instructor {self.instructor_id}"
 
     class Meta:
-        managed = False
         db_table = 'Instructores'
-# --- Señales (Signals) ---
 
+# --- Señales (Signals) ---
 
 @receiver(post_save, sender=Estudiante)
 def crear_user_estudiante(sender, instance, created, **kwargs):
@@ -118,27 +161,22 @@ def crear_user_instructor(sender, instance, created, **kwargs):
         Instructor.objects.filter(pk=instance.pk).update(usuario_auth=user)
 from django.db import models
 
+def __str__(self):
+        return self.nombre_completo or f"Instructor #{self.instructor_id}"
+
+
 class Curso(models.Model):
     curso_id = models.AutoField(primary_key=True)
     nombre_curso = models.CharField(max_length=100)
     categoria = models.CharField(max_length=50)
-    instructor = models.ForeignKey('Instructor', on_delete=models.DO_NOTHING, db_column='instructor_id')
+    instructor = models.ForeignKey(Instructor, on_delete=models.DO_NOTHING, db_column='instructor_id')
     duracion_horas = models.IntegerField()
     costo = models.DecimalField(max_digits=10, decimal_places=2)
-    estado = models.CharField(max_length=20, default='Activo') # Ajusta ESTADO_CHOICES si lo tienes definido arriba
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='Activo')
     cupo_maximo = models.IntegerField()
-    cupo_disponible = models.IntegerField(null=True, blank=True)  # Ya existe físicamente en SQL
-
-    @property
-    def cupo_calc(self):  
-        try:
-            inscritos_activos = self.inscripcion_set.count()
-            return self.cupo_maximo - inscritos_activos
-        except Exception:
-            return self.cupo_maximo
 
     class Meta:
-        managed = False
+        managed = True
         db_table = 'Cursos'
         
 class Inscripcion(models.Model):
@@ -154,6 +192,10 @@ class Inscripcion(models.Model):
     class Meta:
         managed = False
         db_table = 'Inscripciones'
+
+def __str__(self):
+        return f"Inscripción #{self.pk} - {self.estudiante} ({self.curso})"
+
 
 class Evaluacion(models.Model):
     evaluacion_id = models.AutoField(primary_key=True)

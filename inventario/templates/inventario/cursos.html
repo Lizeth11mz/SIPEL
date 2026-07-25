@@ -29,20 +29,13 @@
     <div class="stats-container">
         <div class="stat-card">📖 <div><small style="color:#8b949e">Total</small><br><strong>{{ total_cursos|default:"0" }}</strong></div></div>
         <div class="stat-card">✅ <div><small style="color:#8b949e">Activos</small><br><strong>{{ total_activos|default:"0" }}</strong></div></div>
-        <div class="stat-card">❌ <div><small style="color:#8b949e">Inactivos</small><br><strong>{{ total_inactivos|default:"0" }}</strong></div></div>
-        <div class="stat-card">🏁 <div><small style="color:#8b949e">Finalizados</small><br><strong>{{ total_finalizados|default:"0" }}</strong></div></div>
         <div class="stat-card">💰 <div><small style="color:#8b949e">Costos Totales</small><br><strong>${{ costo_total|default:"0" }}</strong></div></div>
     </div>
 
-    <!-- Formulario de Filtros con la URL exacta corregida -->
-    <form method="GET" id="filterForm" action="{% url 'inventario:gestion_cursos' %}" autocomplete="off" class="filter-bar">
-        <input type="text" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Buscar por nombre de curso...">
-        <select name="estado">
-            <option value="">Todos</option>
-            <option value="Activo" {% if request.GET.estado == 'Activo' %}selected{% endif %}>Activo</option>
-            <option value="Inactivo" {% if request.GET.estado == 'Inactivo' %}selected{% endif %}>Inactivo</option>
-            <option value="Finalizado" {% if request.GET.estado == 'Finalizado' %}selected{% endif %}>Finalizado</option>
-        </select>
+    <!-- Filtros -->
+    <form method="GET" autocomplete="off" class="filter-bar">
+        <input type="text" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Buscar por nombre..." style="flex: 1;">
+        <select name="estado"><option value="">Estado</option><option value="Activo">Activo</option><option value="Inactivo">Inactivo</option></select>
         <button type="submit" class="btn-new">Buscar</button>
         <a href="{% url 'inventario:gestion_cursos' %}" style="background: #161b22; border: 1px solid #30363d; padding: 12px 20px; color: white; text-decoration: none; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;">🔄</a>
     </form>
@@ -70,11 +63,10 @@
                     <td>{{ curso.curso_id }}</td>
                     <td>{{ curso.nombre_curso }}</td>
                     <td>{{ curso.categoria }}</td>
-                    <td>{{ curso.Instructor }}</td>
+                    <td>{{ curso.instructor_id }}</td>
                     <td>{{ curso.duracion_horas }}h</td>
                     <td>${{ curso.costo }}</td>
                     <td>{{ curso.cupo_maximo }}</td>
-                    <td>{{ curso.cupo_calc }}</td>
                     <td>
                         <span style="padding: 3px 8px; border-radius: 10px; font-size: 0.8em; {% if curso.estado == 'Activo' %}background: #238636; color: white;{% elif curso.estado == 'Inactivo' %}background: #da3633; color: white;{% else %}background: #d29922; color: white;{% endif %}">
                             {{ curso.estado }}

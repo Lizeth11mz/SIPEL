@@ -11,76 +11,70 @@
 
             <!-- Usuario -->
             <div style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 4px;">usuario:</label>
+                <label style="display: block; margin-bottom: 4px;">USUARIO:</label>
                 <input type="text" name="usuario" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
             </div>
 
             <!-- Contrasena -->
             <div style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 4px;">contrasena:</label>
+                <label style="display: block; margin-bottom: 4px;">CONTRASEÑA:</label>
                 <input type="password" name="contrasena" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
             </div>
 
             <!-- Nombre Completo -->
             <div style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 4px;">nombre_completo:</label>
+                <label style="display: block; margin-bottom: 4px;">NOMBRE COMPLETO:</label>
                 <input type="text" name="nombre_completo" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
             </div>
             
             <!-- Email -->
             <div style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 4px;">email:</label>
+                <label style="display: block; margin-bottom: 4px;">CORREO:</label>
                 <input type="email" name="email" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
             </div>
 
             <!-- Teléfono -->
             <div style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 4px;">telefono:</label>
+                <label style="display: block; margin-bottom: 4px;">TELÉFONO:</label>
                 <input type="text" name="telefono" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;">
             </div>
 
             <!-- Dirección -->
             <div style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 4px;">direccion:</label>
+                <label style="display: block; margin-bottom: 4px;">DIRECCIÓN:</label>
                 <input type="text" name="direccion" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;">
             </div>
             
             <!-- Documentos -->
             <div style="display: flex; gap: 10px; margin-bottom: 12px;">
                 <div style="flex: 1;">
-                    <label style="display: block; margin-bottom: 4px;">tipo_documento:</label>
+                    <label style="display: block; margin-bottom: 4px;">TIPO DE DOCUMENTO:</label>
                     <select name="tipo_documento" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
                         <option value="INE">INE</option>
-                        <option value="ACTA">Acta de Nacimiento</option>
+                        <option value="ACTA">ACTA DE NACIMIENTO</option>
                         <option value="CURP">CURP</option>
-                        <option value="PASAPORTE">Pasaporte</option>
+                        <option value="PASAPORTE">PASAPORTE</option>
                     </select>
                 </div>
                 <div style="flex: 1;">
-                    <label style="display: block; margin-bottom: 4px;">numero_documento:</label>
+                    <label style="display: block; margin-bottom: 4px;">NÚMERO DE DOCUMENTO:</label>
                     <input type="text" name="numero_documento" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
                 </div>
             </div>
 
-            <!-- Fecha Registro -->
-            <div style="margin-bottom: 12px;">
-                <label style="display: block; margin-bottom: 4px;">fecha_registro:</label>
-                <input type="date" name="fecha_registro" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
-            </div>
-
-            <!-- Estado -->
+            <!-- Estado (Despliegue Activo / Inactivo) -->
             <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 4px;">estado:</label>
+                <label style="display: block; margin-bottom: 4px;">ESTADO:</label>
                 <select name="estado" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
-                    <option value="Activo" selected>Activo</option>
-                    <option value="Inactivo">Inactivo</option>
+                    <option value="Activo" selected>ACTIVO</option>
+                    <option value="Inactivo">INACTIVO</option>
                 </select>
             </div>
             
             <!-- Botones -->
             <div style="text-align: right; margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
                 <button type="button" onclick="closeNewStudentModal()" style="width: 120px; padding: 10px; cursor: pointer; background: #95a5a6; border: none; color: white; border-radius: 4px;">Cerrar</button>
-                <button type="button" onclick="document.querySelector('#newStudentModal form').submit();" style="width: 120px; padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 4px;">Guardar</button>
+                <button type="submit" style="width: 120px; padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 4px;">Guardar</button>
             </div>
         </form>
     </div>

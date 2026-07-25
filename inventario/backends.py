@@ -11,7 +11,15 @@ class BinaryPasswordBackend(BaseBackend):
         except User.DoesNotExist:
             return None
 
-        # 2. Verificamos si es Estudiante o Instructor para extraer su contraseña binaria
+        # 2. SI ES ADMINISTRADOR / STAFF / SUPERUSUARIO:
+        # Validamos directamente con el método nativo de Django (check_password) 
+        # y evitamos buscar en Estudiantes o Instructores.
+        if user.is_staff or user.is_superuser:
+            if user.check_password(password):
+                return user
+            return None
+
+        # 3. SI ES UN ESTUDIANTE O INSTRUCTOR (Manejo de contraseña binaria)
         contrasena_binaria = None
         
         # Intentar buscar en Estudiantes
@@ -27,12 +35,7 @@ class BinaryPasswordBackend(BaseBackend):
         if not contrasena_binaria:
             return None
 
-        # 3. Validar la contraseña según el algoritmo con el que fue cifrada en tu BD de SQL Server.
-        # NOTA: Aquí debes aplicar la misma lógica matemática o función hash con la que se cifró 
-        # originalmente la contraseña en la base de datos para compararla con el 'password' en texto plano ingresado.
-        # Por ejemplo, si se cifró usando SHA-256 o MD5 en SQL:
-        
-        # Ejemplo si fuera SHA256 (ajusta según el algoritmo exacto que usaste en SQL):
+        # 4. Validar la contraseña binaria ingresada
         password_ingresada_hash = hashlib.sha256(password.encode('utf-8')).digest()
         
         if contrasena_binaria == password_ingresada_hash:

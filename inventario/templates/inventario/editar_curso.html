@@ -51,6 +51,12 @@
         {% csrf_token %}
         
         <div class="form-group">
+            {% if form.non_field_errors %}
+                <div style="color: #da3633; margin-bottom: 15px; font-size: 0.9em;">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
             {% for field in form %}
                 <div style="margin-bottom: 15px;">
                     <label>{{ field.label }}</label>
@@ -67,9 +73,11 @@
 </div>
 
 <script>
-    // Aplicar clase CSS a todos los inputs y selects del formulario automáticamente
+    // Aplicar clase CSS a todos los inputs del formulario automáticamente
     document.querySelectorAll('input, select, textarea').forEach(el => {
-        el.classList.add('form-control');
+        if (!el.classList.contains('form-control')) {
+            el.classList.add('form-control');
+        }
     });
 </script>
 {% endblock %}

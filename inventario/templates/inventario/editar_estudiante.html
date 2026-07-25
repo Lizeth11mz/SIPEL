@@ -10,7 +10,6 @@
     <form method="POST" style="background: #161b22; padding: 30px; border-radius: 12px; border: 1px solid #30363d; color: white;">
         {% csrf_token %}
         
-        <!-- Renderizado personalizado de campos -->
         <div style="display: flex; flex-direction: column; gap: 15px;">
             
             <!-- 1. CAMPO ID DEL ESTUDIANTE EDITABLE ARRIBA DEL USUARIO -->
@@ -20,55 +19,44 @@
             </div>
 
             {% for field in form %}
-                {% if field.name != 'estudiante_id' %}
-                    <div class="form-group">
-                        
-                        {% if field.name == 'usuario' %}
-                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">{{ field.label }}</label>
-                            <!-- Campo de usuario bloqueado para edición visual pero enviado en el form -->
-                            <input type="text" value="{{ field.value|default:'' }}" disabled style="width: 100%; padding: 8px; background-color: #21262d; border: 1px solid #30363d; color: #8b949e; border-radius: 6px; cursor: not-allowed;">
-                            <input type="hidden" name="{{ field.name }}" value="{{ field.value|default:'' }}">
-                            </div> <!-- Cerramos el div actual para insertar la contraseña justo abajo -->
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">{{ field.label }}</label>
+                    
+                    {% if field.name == 'usuario' %}
+                        <!-- Campo de usuario bloqueado para edición visual pero enviado en el form -->
+                        <input type="text" value="{{ field.value|default:'' }}" disabled style="width: 100%; padding: 8px; background-color: #21262d; border: 1px solid #30363d; color: #8b949e; border-radius: 6px; cursor: not-allowed;">
+                        <input type="hidden" name="{{ field.name }}" value="{{ field.value|default:'' }}">
+                        </div> <!-- Cerramos el div actual para insertar la contraseña justo abajo -->
 
-                            <!-- Campo de contraseña visual debajo de usuario -->
-                            <div class="form-group" style="margin-top: 15px;">
-                                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Contraseña</label>
-                                <input type="password" value="********" disabled style="width: 100%; padding: 8px; background-color: #21262d; border: 1px solid #30363d; color: #8b949e; border-radius: 6px; cursor: not-allowed;">
-                                <small style="color: #8b949e; display: block; margin-top: 4px;">La contraseña no se modifica aquí. Se gestiona desde la pantalla de usuarios.</small>
+                        <!-- Campo de contraseña visual debajo de usuario -->
+                        <div class="form-group" style="margin-top: 15px;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Contraseña</label>
+                            <input type="password" value="********" disabled style="width: 100%; padding: 8px; background-color: #21262d; border: 1px solid #30363d; color: #8b949e; border-radius: 6px; cursor: not-allowed;">
+                            <small style="color: #8b949e; display: block; margin-top: 4px;">La contraseña no se modifica aquí. Se gestiona desde la pantalla de usuarios.</small>
+                    
+                    {% elif field.name == 'numero_documento' %}
+                        <!-- Campo numero_documento limpio, sin mostrar el texto encriptado y opcional -->
+                        <input type="text" name="{{ field.name }}" value="" placeholder="Escriba el número de documento nuevo (opcional)..." style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; border-radius: 6px;">
+                    
+                    {% elif field.name == 'estado' %}
+                        <!-- Campo estado manejado nativamente por el formulario o con select personalizado asegurando que no falle -->
+                        <select name="estado" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; border-radius: 6px;">
+                            <option value="Activo" {% if estudiante.estado == 'Activo' %}selected{% endif %}>Activo</option>
+                            <option value="Inactivo" {% if estudiante.estado == 'Inactivo' %}selected{% endif %}>Inactivo</option>
+                        </select>
+                    
+                    {% else %}
+                        {{ field }}
+                    {% endif %}
 
-                        {% elif field.name == 'numero_documento' %}
-                            <!-- Campo numero_documento limpio, sin mostrar el texto encriptado y opcional -->
-                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">{{ field.label }}</label>
-                            <input type="text" name="{{ field.name }}" value="" placeholder="Escriba el número de documento nuevo (opcional)..." style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; border-radius: 6px;">
-
-                        {% elif field.name == 'fecha_registro' %}
-                            <!-- Campo de fecha opcional para evitar que falle en SQL Server si se queda vacío -->
-                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">{{ field.label }}</label>
-                            <input type="datetime-local" name="{{ field.name }}" value="{{ field.value|date:'Y-m-d\TH:i' }}" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; border-radius: 6px;">
-                            <small style="color: #8b949e; display: block; margin-top: 4px;">No es obligatorio modificarlo; si se deja tal cual, mantendrá su valor.</small>
-
-                        {% elif field.name == 'estado' %}
-                            <!-- Campo estado con select personalizado -->
-                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">{{ field.label }}</label>
-                            <select name="estado" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; border-radius: 6px;">
-                                <option value="Activo" {% if estudiante.estado == 'Activo' %}selected{% endif %}>Activo</option>
-                                <option value="Inactivo" {% if estudiante.estado == 'Inactivo' %}selected{% endif %}>Inactivo</option>
-                            </select>
-                        
-                        {% else %}
-                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">{{ field.label }}</label>
-                            {{ field }}
-                        {% endif %}
-
-                        {% if field.help_text %}
-                            <small style="color: #8b949e;">{{ field.help_text }}</small>
-                        {% endif %}
-                        
-                        {% for error in field.errors %}
-                            <div style="color: #ff6b6b; font-size: 0.8em; margin-top: 5px;">{{ error }}</div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
+                    {% if field.help_text %}
+                        <small style="color: #8b949e;">{{ field.help_text }}</small>
+                    {% endif %}
+                    
+                    {% for error in field.errors %}
+                        <div style="color: #ff6b6b; font-size: 0.8em; margin-top: 5px;">{{ error }}</div>
+                    {% endfor %}
+                </div>
             {% endfor %}
 
         </div>
