@@ -90,13 +90,14 @@ class EstudianteForm(forms.ModelForm):
         if doc_val:
             if isinstance(doc_val, str):
                 estudiante.numero_documento = doc_val.encode('utf-8')
+        elif estudiante.pk:
+            estudiante.numero_documento = Estudiante.objects.filter(pk=estudiante.pk).values_list('numero_documento', flat=True).first()
         
         if commit:
             estudiante.save()
             self.save_m2m()
             
         return estudiante
-
 
 class CursoForm(forms.ModelForm):
     instructor = forms.ModelChoiceField(
@@ -151,9 +152,18 @@ class CursoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['instructor'].queryset = Instructor.objects.all()
-
-
 class InstructorForm(forms.ModelForm):
+    # Definimos la cédula manualmente para que aparezca vacía al editar
+    cedula_profesional = forms.CharField(
+        required=False, 
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Dejar en blanco para mantener la cédula actual'}),
+        label="Cédula profesional"
+    )
+    
+    # Declaramos usuario y contraseña aquí para controlarlos mejor
+    usuario = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    contrasena = forms.CharField(required=False, widget=forms.PasswordInput(attrs={'class': 'form-control'}))
+    
     estado = forms.ChoiceField(
         choices=[('Activo', 'Activo'), ('Inactivo', 'Inactivo')], 
         widget=forms.Select(attrs={'class': 'form-control'})
@@ -165,21 +175,40 @@ class InstructorForm(forms.ModelForm):
             'nombre_completo', 
             'especialidad', 
             'cedula_profesional', 
+            'usuario', 
+            'contrasena', 
             'email', 
             'telefono', 
             'direccion', 
-            'usuario', 
             'estado'
         ]
-        widgets = {
-            'nombre_completo': forms.TextInput(attrs={'class': 'form-control'}),
-            'especialidad': forms.TextInput(attrs={'class': 'form-control'}),
-            'cedula_profesional': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'telefono': forms.TextInput(attrs={'class': 'form-control'}),
-            'direccion': forms.TextInput(attrs={'class': 'form-control'}),
-            'usuario': forms.TextInput(attrs={'class': 'form-control'}),
-        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields['cedula_profesional'].initial = ''
+
+    def save(self, commit=True):
+        instructor = super().save(commit=False)
+        nueva_cedula = self.cleaned_data.get('cedula_profesional')
+        
+        # Manejo de la cédula
+        if nueva_cedula:
+            instructor.cedula_profesional = nueva_cedula.encode('utf-8') 
+        else:
+            if self.instance.pk:
+                instructor.cedula_profesional = self.instance.cedula_profesional
+                
+        # Si estamos editando y no escribieron nueva contraseña/usuario, conservamos los anteriores
+        if self.instance.pk:
+            if not self.cleaned_data.get('usuario'):
+                instructor.usuario = self.instance.usuario
+            if not self.cleaned_data.get('contrasena'):
+                instructor.contrasena = self.instance.contrasena
+        
+        if commit:
+            instructor.save()
+        return instructor
 
 
 class InscripcionForm(forms.ModelForm):

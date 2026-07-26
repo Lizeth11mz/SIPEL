@@ -7,46 +7,51 @@
         </div>
 
         <form method="post" action="{% url 'inventario:crear_instructor' %}">
-            {% csrf_token %>
+            {% csrf_token %}
 
-            <!-- Fila: Nombre y Apellidos (Para formar nombre_completo) -->
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <div style="flex: 1;"><label>Nombre</label><input type="text" name="nombre" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
-                <div style="flex: 1;"><label>Ap. Paterno</label><input type="text" name="apellido_paterno" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
-                <div style="flex: 1;"><label>Ap. Materno</label><input type="text" name="apellido_materno" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
-            </div>
-
-            <!-- Fila: Correo y Teléfono -->
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <div style="flex: 1;"><label>Correo (Email)</label><input type="email" name="email" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
-                <div style="flex: 1;"><label>Teléfono</label><input type="text" name="telefono" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
-            </div>
-
-            <!-- Fila: Especialidad y Cédula Profesional -->
-            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <div style="flex: 1;"><label>Especialidad</label><input type="text" name="especialidad" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
-                <div style="flex: 1;"><label>Cédula Profesional</label><input type="text" name="cedula_profesional" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
-            </div>
-
-            <!-- Dirección -->
+            <!-- 1. Nombre Completo -->
             <div class="form-group" style="margin-bottom: 15px;">
-                <label>Dirección</label>
-                <input type="text" name="direccion" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
+                <label>NOMBRE COMPLETO</label>
+                <input type="text" name="nombre_completo" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; text-transform: uppercase;" required>
             </div>
 
-            <!-- Estado -->
+            <!-- 2 y 3. Especialidad y Cédula Profesional -->
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div style="flex: 1;"><label>ESPECIALIDAD</label><input type="text" name="especialidad" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; text-transform: uppercase;" required></div>
+                <div style="flex: 1;"><label>CÉDULA PROFESIONAL</label><input type="text" name="cedula_profesional" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; text-transform: uppercase;" required></div>
+            </div>
+
+            <!-- 4 y 5. Usuario y Contraseña -->
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div style="flex: 1;"><label>USUARIO</label><input type="text" name="usuario" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
+                <div style="flex: 1;"><label>CONTRASEÑA</label><input type="password" name="contrasena" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
+            </div>
+
+            <!-- 6 y 7. Correo y Teléfono -->
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <div style="flex: 1;"><label>CORREO (EMAIL)</label><input type="email" name="email" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
+                <div style="flex: 1;"><label>TELÉFONO</label><input type="text" name="telefono" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required></div>
+            </div>
+
+            <!-- 8. Dirección -->
             <div class="form-group" style="margin-bottom: 15px;">
-                <label>Estado</label>
+                <label>DIRECCIÓN</label>
+                <input type="text" name="direccion" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; text-transform: uppercase;" required>
+            </div>
+
+            <!-- 9. Estado -->
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>ESTADO</label>
                 <select name="estado" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
-                    <option value="Activo" selected>Activo</option>
-                    <option value="Inactivo">Inactivo</option>
+                    <option value="Activo" selected>ACTIVO</option>
+                    <option value="Inactivo">INACTIVO</option>
                 </select>
             </div>
             
             <!-- Botones -->
             <div style="text-align: right; margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
-                <button type="button" class="btn-cancelar" onclick="closeNewInstructorModal()" style="width: 120px; padding: 10px; cursor: pointer; background: #95a5a6; border: none; color: white;">Cerrar</button>
-                <button type="submit" class="btn-primary" style="width: 120px; padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer;">Guardar</button>
+                <button type="button" class="btn-cancelar" onclick="closeNewInstructorModal()" style="width: 120px; padding: 10px; cursor: pointer; background: #95a5a6; border: none; color: white; font-weight: bold;">CERRAR</button>
+                <button type="submit" class="btn-primary" style="width: 120px; padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer; font-weight: bold;">GUARDAR</button>
             </div>
         </form>
     </div>

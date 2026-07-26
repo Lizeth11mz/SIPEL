@@ -3,8 +3,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.models import User
-from core.models import PerfilUsuario
 from inventario.forms import UsuarioForm
+from inventario.models import Instructor
 
 # ============================================================
 # 1. VISTAS PÚBLICAS
@@ -36,28 +36,26 @@ def login_view(request):
             messages.error(request, "Usuario o contraseña incorrectos.")
             return render(request, "core/login.html", {'role': rol_solicitado})
 
-        # Obtener rol numérico
+        # Determinación de rol sin usar user.perfil para evitar errores de columnas faltantes
         if user.is_superuser:
-            rol_num = 1 # Admin
+            rol_num = 1  # Admin
+        elif Instructor.objects.filter(usuario_auth=user).exists():
+            rol_num = 2  # Instructor
         else:
-            try:
-                rol_num = user.perfil.nivel_acceso
-            except PerfilUsuario.DoesNotExist:
-                messages.error(request, "Tu cuenta no tiene un perfil configurado.")
-                return render(request, "core/login.html", {'role': rol_solicitado})
+            rol_num = 3  # Estudiante (por defecto si no es admin ni instructor)
 
         # Mapeo a texto para lógica interna
         mapa_roles = {1: "Admin", 2: "Instructor", 3: "Estudiante"}
         rol_usuario = mapa_roles.get(rol_num)
 
-        # Validación de roles
+        # Validación de roles según el botón o parámetro recibido en la URL
         if not user.is_superuser and rol_solicitado and rol_usuario.lower() != rol_solicitado.lower():
-            messages.error(request, f"Acceso restringido. Tu cuenta es {rol_usuario}.")
+            messages.error(request, f"Acceso restringido. Tu cuenta es de tipo {rol_usuario}.")
             return render(request, "core/login.html", {'role': rol_solicitado})
 
         login(request, user)
         
-        # Redirección
+        # Redirección según rol
         if rol_usuario == "Admin": return redirect("inventario:registros")
         if rol_usuario == "Estudiante": return redirect("inventario:registros_estudiante")
         return redirect("inventario:registros_instructor")
@@ -68,17 +66,20 @@ def login_view(request):
 @login_required
 def home_registros(request):
     try:
-        if request.user.is_superuser: return redirect("inventario:registros")
-        rol_num = request.user.perfil.nivel_acceso
-        if rol_num == 1: return redirect("inventario:registros")
-        if rol_num == 3: return redirect("inventario:registros_estudiante")
-        return redirect("inventario:registros_instructor")
-    except:
+        if request.user.is_superuser: 
+            return redirect("inventario:registros")
+        
+        if Instructor.objects.filter(usuario_auth=request.user).exists(): 
+            return redirect("inventario:registros_instructor")
+        
+        return redirect("inventario:registros_estudiante")
+    except Exception:
         return redirect('core:index')
 
 def custom_logout_view(request):
     logout(request)
     return redirect("core:index")
+
 def crear_usuario(request):
     if request.method == 'POST':
         form = UsuarioForm(request.POST)
@@ -89,14 +90,13 @@ def crear_usuario(request):
         form = UsuarioForm()
     
     return render(request, 'inventario/usuario_form.html', {'form': form})
-# En core/views.py
 
-# En core/views.py
 def editar_usuario_CORRECTO(request, usuario_id):
     usuario = get_object_or_404(User, pk=usuario_id)
     form = UsuarioForm(instance=usuario)
     return render(request, 'inventario/usuario_form.html', {'form': form, 'usuario': usuario})
-def eliminar_usuario(request, usuario_id): # Cambiado de pk a usuario_id
+
+def eliminar_usuario(request, usuario_id):
     usuario = get_object_or_404(User, pk=usuario_id)
     if request.method == 'POST':
         usuario.delete()

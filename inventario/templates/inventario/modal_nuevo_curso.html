@@ -1,39 +1,41 @@
-<div class="modal-content" style="background-color: #161b22; margin: 5% auto; padding: 25px; border-radius: 12px; width: 500px; color: #e6edf3; font-family: sans-serif; border: 1px solid #30363d;">
-    <!-- Encabezado -->
-    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #30363d; padding-bottom: 15px;">
-        <h2 style="margin: 0; font-size: 1.4em; color: #ffffff; font-weight: bold;">➕ Nuevo Curso</h2>
-        <span style="font-size: 24px; cursor: pointer; color: #8b949e;" onclick="closeNewCourseModal()">&times;</span>
-    </div>
+<div id="newCourseModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 1000; overflow-y: auto;">
+    <div class="modal-content" style="background-color: #161b22; margin: 5% auto; padding: 25px; border-radius: 12px; width: 500px; color: #e6edf3; font-family: sans-serif; border: 1px solid #30363d; position: relative;">
+        <!-- Encabezado -->
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #30363d; padding-bottom: 15px;">
+            <h2 style="margin: 0; font-size: 1.4em; color: #ffffff; font-weight: bold;">➕ Nuevo Curso</h2>
+            <span style="font-size: 24px; cursor: pointer; color: #8b949e;" onclick="closeNewCourseModal()">&times;</span>
+        </div>
 
-    <!-- Formulario -->
-    <form method="post" action="{% url 'inventario:crear_curso' %}">
-        {% csrf_token %}
-        
-        <div style="display: flex; flex-direction: column; gap: 15px;">
-            {% for field in form %}
-            <div class="form-group">
-                <label style="color: #8b949e; font-size: 0.9em; display: block; margin-bottom: 5px; text-transform: uppercase;">
-                    {{ field.label }}
-                </label>
-                {{ field }}
-                {% if field.errors %}
-                    <div style="color: #f85149; font-size: 0.8em; margin-top: 5px;">{{ field.errors.0 }}</div>
-                {% endif %}
+        <!-- Formulario -->
+        <form method="post" action="{% url 'inventario:crear_curso' %}">
+            {% csrf_token %}
+            
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                {% for field in form %}
+                <div class="form-group">
+                    <label style="color: #8b949e; font-size: 0.9em; display: block; margin-bottom: 5px; text-transform: uppercase;">
+                        {{ field.label }}
+                    </label>
+                    {{ field }}
+                    {% if field.errors %}
+                        <div style="color: #f85149; font-size: 0.8em; margin-top: 5px;">{{ field.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
-        
-        <!-- Botones de Acción -->
-        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px;">
-            <button type="button" onclick="closeNewCourseModal()" style="padding: 10px 20px; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; cursor: pointer;">Cerrar</button>
-            <button type="submit" style="padding: 10px 20px; background: #238636; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Guardar Curso</button>
-        </div>
-    </form>
+            
+            <!-- Botones de Acción -->
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px;">
+                <button type="button" onclick="closeNewCourseModal()" style="padding: 10px 20px; background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; cursor: pointer;">Cerrar</button>
+                <button type="submit" style="padding: 10px 20px; background: #238636; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">Guardar Curso</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
     // Aplicar estilos a los inputs generados por Django para que coincidan con la base de datos
-    document.querySelectorAll('.modal-content input, .modal-content select').forEach(el => {
+    document.querySelectorAll('.modal-content input, .modal-content select, .modal-content textarea').forEach(el => {
         el.style.width = '100%';
         el.style.padding = '10px';
         el.style.borderRadius = '6px';

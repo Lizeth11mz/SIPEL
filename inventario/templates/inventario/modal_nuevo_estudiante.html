@@ -62,7 +62,7 @@
                 </div>
             </div>
 
-            <!-- Estado (Despliegue Activo / Inactivo) -->
+            <!-- Estado -->
             <div style="margin-bottom: 15px;">
                 <label style="display: block; margin-bottom: 4px;">ESTADO:</label>
                 <select name="estado" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white;" required>
@@ -86,11 +86,5 @@
     }
     function openNewStudentModal() {
         document.getElementById('newStudentModal').style.display = 'block';
-    }
-    window.onclick = function(event) {
-        var modal = document.getElementById('newStudentModal');
-        if (event.target == modal) {
-            modal.style.display = 'none';
-        }
     }
 </script>

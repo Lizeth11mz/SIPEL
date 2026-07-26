@@ -12,52 +12,60 @@
         
         <div style="display: flex; flex-direction: column; gap: 15px;">
             
-            <!-- 1. CAMPO ID DEL ESTUDIANTE EDITABLE ARRIBA DEL USUARIO -->
+            <!-- 1. ID DEL ESTUDIANTE (Bloqueado) -->
             <div class="form-group">
                 <label style="display: block; margin-bottom: 5px; font-weight: bold;">ID Estudiante</label>
-                <input type="text" name="estudiante_id" value="{{ form.instance.pk }}" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; border-radius: 6px;">
+                <input type="text" value="{{ form.instance.pk }}" disabled style="width: 100%; padding: 8px; background-color: #21262d; border: 1px solid #30363d; color: #8b949e; border-radius: 6px; cursor: not-allowed;">
+                <input type="hidden" name="estudiante_id" value="{{ form.instance.pk }}">
             </div>
 
-            {% for field in form %}
-                <div class="form-group">
-                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">{{ field.label }}</label>
-                    
-                    {% if field.name == 'usuario' %}
-                        <!-- Campo de usuario bloqueado para edición visual pero enviado en el form -->
-                        <input type="text" value="{{ field.value|default:'' }}" disabled style="width: 100%; padding: 8px; background-color: #21262d; border: 1px solid #30363d; color: #8b949e; border-radius: 6px; cursor: not-allowed;">
-                        <input type="hidden" name="{{ field.name }}" value="{{ field.value|default:'' }}">
-                        </div> <!-- Cerramos el div actual para insertar la contraseña justo abajo -->
+            <!-- 2. NOMBRE COMPLETO -->
+            <div class="form-group">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Nombre Completo</label>
+                {{ form.nombre_completo }}
+                {{ form.nombre_completo.errors }}
+            </div>
 
-                        <!-- Campo de contraseña visual debajo de usuario -->
-                        <div class="form-group" style="margin-top: 15px;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Contraseña</label>
-                            <input type="password" value="********" disabled style="width: 100%; padding: 8px; background-color: #21262d; border: 1px solid #30363d; color: #8b949e; border-radius: 6px; cursor: not-allowed;">
-                            <small style="color: #8b949e; display: block; margin-top: 4px;">La contraseña no se modifica aquí. Se gestiona desde la pantalla de usuarios.</small>
-                    
-                    {% elif field.name == 'numero_documento' %}
-                        <!-- Campo numero_documento limpio, sin mostrar el texto encriptado y opcional -->
-                        <input type="text" name="{{ field.name }}" value="" placeholder="Escriba el número de documento nuevo (opcional)..." style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; border-radius: 6px;">
-                    
-                    {% elif field.name == 'estado' %}
-                        <!-- Campo estado manejado nativamente por el formulario o con select personalizado asegurando que no falle -->
-                        <select name="estado" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; border-radius: 6px;">
-                            <option value="Activo" {% if estudiante.estado == 'Activo' %}selected{% endif %}>Activo</option>
-                            <option value="Inactivo" {% if estudiante.estado == 'Inactivo' %}selected{% endif %}>Inactivo</option>
-                        </select>
-                    
-                    {% else %}
-                        {{ field }}
-                    {% endif %}
+            <!-- 3. CORREO -->
+            <div class="form-group">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Correo (Email)</label>
+                {{ form.email }}
+                {{ form.email.errors }}
+            </div>
 
-                    {% if field.help_text %}
-                        <small style="color: #8b949e;">{{ field.help_text }}</small>
-                    {% endif %}
-                    
-                    {% for error in field.errors %}
-                        <div style="color: #ff6b6b; font-size: 0.8em; margin-top: 5px;">{{ error }}</div>
-                    {% endfor %}
-                </div>
-            {% endfor %}
+            <!-- 4. TELÉFONO -->
+            <div class="form-group">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Teléfono</label>
+                {{ form.telefono }}
+                {{ form.telefono.errors }}
+            </div>
+
+            <!-- 5. TIPO DE DOCUMENTO (Desplegable) -->
+            <div class="form-group">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Tipo de Documento</label>
+                {{ form.tipo_documento }}
+                {{ form.tipo_documento.errors }}
+            </div>
+
+            <!-- 6. DOCUMENTO (Número de documento opcional y limpio) -->
+            <div class="form-group">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Documento</label>
+                <input type="text" name="numero_documento" value="" placeholder="Escriba el número de documento nuevo (opcional)..." style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; border-radius: 6px;">
+                {{ form.numero_documento.errors }}
+            </div>
+
+            <!-- 7. ESTADO -->
+            <div class="form-group">
+                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Estado</label>
+                <select name="estado" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; border-radius: 6px;">
+                    <option value="Activo" {% if form.instance.estado == 'Activo' %}selected{% endif %}>Activo</option>
+                    <option value="Inactivo" {% if form.instance.estado == 'Inactivo' %}selected{% endif %}>Inactivo</option>
+                </select>
+                {{ form.estado.errors }}
+            </div>
+
+            <!-- Campos ocultos de Usuario y Contraseña para mantener la lógica interna sin alterarse visualmente -->
+            <input type="hidden" name="usuario" value="{{ form.instance.usuario }}">
 
         </div>
 

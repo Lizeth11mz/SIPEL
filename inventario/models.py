@@ -83,12 +83,15 @@ class Instructor(models.Model):
     usuario_auth = models.OneToOneField(User, on_delete=models.CASCADE, db_column='usuario_id', null=True, blank=True)
     nombre_completo = models.CharField(max_length=100, blank=True, null=True)
     especialidad = models.CharField(max_length=50, blank=True, null=True)
-    cedula_profesional = models.CharField(max_length=50, blank=True, null=True)
+    
+    # AGREGA editable=True AQUÍ:
+    cedula_profesional = models.BinaryField(blank=True, null=True, editable=True)
+    
     email = models.CharField(max_length=100, blank=True, null=True)
     telefono = models.CharField(max_length=20, blank=True, null=True)
     direccion = models.CharField(max_length=255, blank=True, null=True)
     usuario = models.CharField(max_length=50, unique=True, blank=True, null=True)
-    contrasena = models.BinaryField(blank=True, null=True)
+    contrasena = models.BinaryField(blank=True, null=True, editable=True)
     estado = models.CharField(max_length=20, default='Activo', blank=True, null=True)
 
     def __str__(self):
@@ -174,6 +177,14 @@ class Curso(models.Model):
     costo = models.DecimalField(max_digits=10, decimal_places=2)
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='Activo')
     cupo_maximo = models.IntegerField()
+    cupo_disponible = models.IntegerField(null=True, blank=True)
+
+    @property
+    def cupo_real_disponible(self):
+        # Cuenta cuántas inscripciones con estado 'Activa' tiene este curso en tiempo real
+        inscritos_count = self.inscripcion_set.filter(estado='Activa').count()
+        # Resta el cupo máximo menos los inscritos reales
+        return self.cupo_maximo - inscritos_count
 
     class Meta:
         managed = True
