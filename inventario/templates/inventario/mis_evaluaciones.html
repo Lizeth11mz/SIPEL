@@ -2,21 +2,53 @@
 {% block title %}Mis Evaluaciones{% endblock %}
 
 {% block content %}
-<h1 class="text-3xl font-bold mb-6">📊 Mis Evaluaciones</h1>
-<table class="w-full bg-white shadow rounded">
-    <thead>
-        <tr class="bg-gray-200">
-            <th class="p-4 text-left">Materia</th>
-            <th class="p-4 text-left">Calificación</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for eval in evaluaciones %}
-        <tr>
-            <td class="p-4 border-b">{{ eval.curso.nombre_curso }}</td>
-            <td class="p-4 border-b">{{ eval.calificacion }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="container mx-auto px-4 py-6">
+    <!-- Título dentro de un rectángulo elegante para que resalte -->
+    <div class="bg-white shadow-md rounded-xl p-5 mb-6 border border-gray-200 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <span class="text-3xl bg-indigo-100 text-indigo-700 p-3 rounded-lg shadow-inner">📝</span>
+            <h1 class="text-2xl font-extrabold text-gray-800 tracking-wide">Mis Evaluaciones</h1>
+        </div>
+    </div>
+
+    <!-- Tabla principal -->
+    <div class="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-200">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-indigo-600 text-white uppercase text-sm font-semibold tracking-wider">
+                    <th class="py-4 px-6">Materia / Curso</th>
+                    <th class="py-4 px-6">Calificación</th>
+                    <th class="py-4 px-6">Comentarios</th>
+                    <th class="py-4 px-6">Fecha</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 text-gray-800">
+                {% for eval in evaluaciones %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="py-4 px-6 font-medium text-gray-900">
+                        {{ eval.nombre_curso|default:"Curso General" }}
+                    </td>
+                    <td class="py-4 px-6">
+                        <span class="px-3 py-1 text-sm font-bold rounded-full bg-green-100 text-green-800 shadow-sm">
+                            {{ eval.calificacion }}
+                        </span>
+                    </td>
+                    <td class="py-4 px-6 text-gray-700">
+                        {{ eval.comentarios|default:"Sin comentarios" }}
+                    </td>
+                    <td class="py-4 px-6 text-sm text-gray-500">
+                        {{ eval.fecha_evaluacion|date:"d/m/Y" }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="py-6 text-center text-gray-500 italic">
+                        No tienes evaluaciones registradas todavía.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 {% endblock %}

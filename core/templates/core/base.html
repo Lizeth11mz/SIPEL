@@ -71,7 +71,7 @@
                     {% endif %}
 
                     <hr>
-                    <form action="{% url 'inventario:logout' %}" method="post" style="margin: 0;">
+                   <form action="{% url 'core:logout' %}" method="post" style="margin: 0;">
                         {% csrf_token %}
                         <button type="submit" style="background: none; border: none; padding: 22px 30px; width: 100%; text-align: left; cursor: pointer; color: #ff6b6b; font-size: 1em; display: flex; align-items: center;">
                             <span class="icon">🚪</span> Cerrar Sesión

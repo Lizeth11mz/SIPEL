@@ -36,22 +36,17 @@ def login_view(request):
             messages.error(request, "Usuario o contraseña incorrectos.")
             return render(request, "core/login.html", {'role': rol_solicitado})
 
-        # Determinación de rol sin usar user.perfil para evitar errores de columnas faltantes
         if user.is_superuser:
-            rol_num = 1  # Admin
+            rol_usuario = "Admin"
         elif Instructor.objects.filter(usuario_auth=user).exists():
-            rol_num = 2  # Instructor
+            rol_usuario = "Instructor"
         else:
-            rol_num = 3  # Estudiante (por defecto si no es admin ni instructor)
+            rol_usuario = "Estudiante"
 
-        # Mapeo a texto para lógica interna
-        mapa_roles = {1: "Admin", 2: "Instructor", 3: "Estudiante"}
-        rol_usuario = mapa_roles.get(rol_num)
-
-        # Validación de roles según el botón o parámetro recibido en la URL
-        if not user.is_superuser and rol_solicitado and rol_usuario.lower() != rol_solicitado.lower():
-            messages.error(request, f"Acceso restringido. Tu cuenta es de tipo {rol_usuario}.")
+        if rol_solicitado and rol_usuario.lower() != rol_solicitado.lower():
+            messages.error(request, f"Acceso denegado. Intentaste entrar como {rol_solicitado}, pero tu cuenta es de tipo {rol_usuario}.")
             return render(request, "core/login.html", {'role': rol_solicitado})
+
 
         login(request, user)
         

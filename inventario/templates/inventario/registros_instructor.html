@@ -15,24 +15,59 @@
             Como instructor, tienes acceso a todas las herramientas necesarias para tu labor académica.
         </p>
     </div>
-    
-    <!-- Sección de Resumen Dinámico -->
-    <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-gray-800">
-        <h2 class="text-xl font-bold text-gray-800 mb-4">Resumen de Actividades</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        <!-- Lista dinámica de actividades -->
-        <ul class="space-y-3">
-            {% for actividad in actividades %}
-                <li class="border-b pb-2">
-                    <span class="block text-gray-700 font-medium">{{ actividad.mensaje }}</span>
-                    <span class="text-xs text-gray-400 italic">
-                        {{ actividad.fecha|date:"d M, Y - H:i" }}
-                    </span>
-                </li>
-            {% empty %}
-                <li class="text-gray-500 italic">No hay notificaciones recientes.</li>
-            {% endfor %}
-        </ul>
+        <!-- Sección de Resumen de Actividades -->
+        <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-gray-800">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Resumen de Actividades</h2>
+            
+            <ul class="space-y-3">
+                {% for insc in ultimas_inscripciones %}
+                    <li class="border-b pb-3 flex justify-between items-center">
+                        <div>
+                            <span class="block text-gray-800 font-semibold">
+                                Nuevo estudiante inscrito: {{ insc.estudiante.nombre_completo }}
+                            </span>
+                            <span class="text-sm text-gray-600">
+                                Curso: {{ insc.curso.nombre_curso }}
+                            </span>
+                        </div>
+                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-medium">
+                            Inscripción
+                        </span>
+                    </li>
+                {% empty %}
+                    <li class="text-gray-500 italic">No hay notificaciones recientes.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Nueva Sección: Mis Cursos Asignados -->
+        <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-600">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Mis Cursos Asignados ({{ total_cursos }})</h2>
+            
+            <ul class="space-y-3">
+                {% for curso in mis_cursos %}
+                    <li class="border-b pb-3 flex justify-between items-center">
+                        <div>
+                            <span class="block text-gray-800 font-semibold">
+                                {{ curso.nombre_curso }}
+                            </span>
+                            <span class="text-sm text-gray-600">
+                                Código / ID: {{ curso.pk }}
+                            </span>
+                        </div>
+                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">
+                            Activo
+                        </span>
+                    </li>
+                {% empty %}
+                    <li class="text-gray-500 italic">No tienes cursos asignados actualmente.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
     </div>
 </div>
 {% endblock %}

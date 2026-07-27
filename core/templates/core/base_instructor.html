@@ -29,12 +29,12 @@
 <body>
     {% if request.user.is_authenticated %}
         {% with user_profile=request.user.perfilusuario %}
-           <div class="top-bar">
-           <div>👤 Usuario: <strong style="color: #f0b429;">{{ usuario }}</strong></div>
-           <div>🛡️ Permiso: <strong style="color: #f0b429;">{{ permiso }}</strong></div>
-           <div>📅 Fecha: <span>{% now "d/m/Y" %}</span></div>
-           <div>🕒 Hora: <span id="reloj"></span></div>
-           </div>
+            <div class="top-bar">
+            <div>👤 Usuario: <strong style="color: #f0b429;">{{ request.user.username }}</strong></div>
+            <div>🛡️ Permiso: <strong style="color: #f0b429;">Instructor</strong></div>
+            <div>📅 Fecha: <span>{% now "d/m/Y" %}</span></div>
+            <div>🕒 Hora: <span id="reloj"></span></div>
+            </div>
             <div class="main-container">
                 <nav class="sidebar">
                     <div class="sidebar-logo-container">

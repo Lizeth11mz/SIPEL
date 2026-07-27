@@ -2,15 +2,47 @@
 {% block title %}Mis Cursos{% endblock %}
 
 {% block content %}
-<h1 class="text-3xl font-bold mb-6">📘 Mis Cursos Asignados</h1>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    {% for curso in mis_cursos %}
-    <div class="bg-white p-6 rounded shadow border-l-4 border-blue-500">
-        <h2 class="font-bold text-xl">{{ curso.nombre_curso }}</h2>
-        <p class="text-gray-600">{{ curso.descripcion }}</p>
+<div class="p-6 max-w-7xl mx-auto">
+  <h1 class="text-3xl font-bold mb-6 text-blue-900 flex items-center justify-center gap-3">
+    <span>📘</span> Mis Cursos Asignados
+</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for curso in mis_cursos %}
+        <div class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow duration-300 flex flex-col justify-between">
+            <!-- Encabezado de la tarjeta -->
+            <div class="bg-blue-600 text-white p-5">
+                <h2 class="font-bold text-xl mb-1">{{ curso.nombre_curso }}</h2>
+                <span class="text-xs bg-blue-700 text-blue-100 px-2.5 py-1 rounded-full font-medium inline-block">
+                    {{ curso.categoria }}
+                </span>
+            </div>
+
+            <!-- Cuerpo con enfoque académico -->
+            <div class="p-5 space-y-4 text-gray-600 text-sm flex-grow">
+                {% if curso.descripcion %}
+                <p class="text-gray-700 leading-relaxed">{{ curso.descripcion }}</p>
+                {% endif %}
+
+                <div class="pt-3 border-t border-gray-100 flex justify-between items-center">
+                    <span class="font-semibold text-gray-700">Duración:</span>
+                    <span class="bg-gray-100 px-2.5 py-1 rounded text-gray-800 font-medium">{{ curso.duracion_horas }} horas</span>
+                </div>
+            </div>
+
+            <!-- Pie de tarjeta con el estado -->
+            <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-between items-center text-sm">
+                <span class="font-semibold text-gray-700">Estado:</span>
+                <span class="font-bold {% if curso.estado == 'Activo' %}text-emerald-500{% else %}text-rose-500{% endif %}">
+                    ● {{ curso.estado }}
+                </span>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full bg-white p-8 rounded-xl shadow text-center text-gray-500">
+            <p class="text-lg">No tienes cursos asignados actualmente.</p>
+        </div>
+        {% endfor %}
     </div>
-    {% empty %}
-    <p>No tienes cursos asignados actualmente.</p>
-    {% endfor %}
 </div>
 {% endblock %}

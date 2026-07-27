@@ -2,23 +2,72 @@
 {% block title %}Mis Pagos{% endblock %}
 
 {% block content %}
-<h1 class="text-3xl font-bold mb-6">💳 Historial de Pagos</h1>
-<table class="w-full bg-white shadow rounded">
-    <thead>
-        <tr class="bg-gray-200">
-            <th class="p-4 text-left">Fecha</th>
-            <th class="p-4 text-left">Monto</th>
-            <th class="p-4 text-left">Estado</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for pago in pagos %}
-        <tr>
-            <td class="p-4 border-b">{{ pago.fecha|date:"d/m/Y" }}</td>
-            <td class="p-4 border-b">${{ pago.monto }}</td>
-            <td class="p-4 border-b">{{ pago.estado|title }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="container mx-auto px-6 py-8">
+    
+    <!-- BANNER DE ENCABEZADO - ESTILO PROFESIONAL Y ELEGANTE -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div>
+            <div class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-md text-xs font-semibold uppercase tracking-wider mb-3 border border-blue-100">
+                <span>💳</span> Panel Financiero
+            </div>
+            <h1 class="text-3xl font-bold tracking-tight text-gray-900">Historial de Pagos</h1>
+            <p class="text-gray-500 text-sm mt-1 max-w-xl">Consulta el detalle de tus cursos pagados y descarga tus comprobantes en PDF de forma rápida y segura.</p>
+        </div>
+        <div class="bg-gray-50 border border-gray-200 px-6 py-4 rounded-xl text-center min-w-[140px]">
+            <span class="block text-3xl font-extrabold text-blue-600">{{ pagos|length }}</span>
+            <span class="block text-xs text-gray-500 uppercase font-semibold mt-0.5">Pagos Totales</span>
+        </div>
+    </div>
+
+    <!-- CONTENEDOR DE LA TABLA - DISEÑO LIMPIO Y CORPORATIVO -->
+    <div class="bg-white shadow-sm rounded-2xl overflow-hidden border border-gray-200">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider border-b border-gray-200">
+                        <th class="p-5 font-semibold">Curso</th>
+                        <th class="p-5 font-semibold">Fecha</th>
+                        <th class="p-5 font-semibold">Monto</th>
+                        <th class="p-5 font-semibold">Estado</th>
+                        <th class="p-5 text-center font-semibold">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-gray-700 text-sm">
+                    {% for pago in pagos %}
+                    <tr class="hover:bg-gray-50/80 transition duration-150">
+                        <td class="p-5 font-semibold text-gray-900 text-base">{{ pago.curso }}</td>
+                        <td class="p-5 text-gray-500 font-medium">{{ pago.fecha|date:"d/m/Y H:i" }}</td>
+                        <td class="p-5 font-bold text-gray-900 text-base">${{ pago.monto }}</td>
+                        <td class="p-5">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                {{ pago.estado|title }}
+                            </span>
+                        </td>
+                        <td class="p-5 text-center">
+                            <a href="{% url 'inventario:descargar_comprobante_pdf' pago.pago_id %}" target="_blank" 
+                               class="inline-flex items-center px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm hover:shadow transition duration-200">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Descargar PDF
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="p-12 text-center text-gray-400 font-medium text-base">
+                            <div class="flex flex-col items-center justify-center">
+                                <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                </svg>
+                                No tienes pagos registrados todavía.
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 {% endblock %}

@@ -1,22 +1,122 @@
 {% extends 'core/base_estudiante.html' %}
-{% block title %}Mis Inscripciones{% endblock %}
+
+{% block title %}Mis Inscripciones y Pagos{% endblock %}
 
 {% block content %}
-<h1 class="text-3xl font-bold mb-6">📝 Mis Inscripciones</h1>
-<table class="w-full bg-white shadow rounded">
-    <thead>
-        <tr class="bg-gray-200">
-            <th class="p-4 text-left">Curso</th>
-            <th class="p-4 text-left">Estado</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for insc in inscripciones %}
-        <tr>
-            <td class="p-4 border-b">{{ insc.curso.nombre_curso }}</td>
-            <td class="p-4 border-b">{{ insc.estado }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+
+<div class="p-6 max-w-7xl mx-auto text-gray-100">
+
+    <!-- Encabezado con rectángulo naranja fuerte de alto contraste -->
+    <div style="background-color: #f39c12; padding: 20px; border-radius: 8px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+        <div>
+            <h1 style="margin: 0; font-size: 1.8rem; font-weight: bold; color: #ffffff; display: flex; align-items: center; gap: 10px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
+                <span>📝</span> Mis Inscripciones y Estado de Pagos
+            </h1>
+            <p style="margin: 6px 0 0 0; color: #ffffff; font-size: 0.95rem; font-weight: bold;">
+                Consulta tus cursos inscritos y el estado de tus pagos.
+            </p>
+        </div>
+        
+        <!-- Botón de acción rápido con estilo sólido -->
+        <button type="button" onclick="openInscribirmeModal()" style="background-color: #2c3e50; color: white; padding: 12px 20px; border-radius: 6px; font-weight: bold; font-size: 0.9rem; border: 2px solid #ffffff; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+            <span>➕</span> Inscribirme a un curso
+        </button>
+    </div>
+
+    <!-- Tarjetas de Estadísticas / Resumen (Solo Inscripciones Totales) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-slate-800 p-4 rounded-xl shadow-md border border-slate-700 flex items-center justify-between">
+            <div>
+                <p class="text-gray-400 text-xs font-semibold uppercase">Inscripciones Totales</p>
+                <h3 class="text-2xl font-bold text-white mt-1">{{ total_inscripciones|default:"5" }}</h3>
+            </div>
+            <div class="bg-blue-900/50 text-blue-400 p-3 rounded-lg border border-blue-800">📘</div>
+        </div>
+    </div>
+
+    <!-- Barra de Búsqueda con Botón Verde y Símbolo de Refrescar -->
+    <div class="bg-slate-800 p-4 rounded-xl shadow-md border border-slate-700 mb-6">
+        <form method="GET" class="flex flex-col sm:flex-row gap-3 items-center w-full">
+            <div class="relative w-full">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
+                <input type="text" name="busqueda" value="{{ request.GET.busqueda }}" placeholder="Escribe una letra o nombre..." class="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500 placeholder-gray-500">
+            </div>
+            
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <!-- Botón de Buscar Verde -->
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-5 py-2.5 rounded-lg text-sm transition-colors shadow flex items-center justify-center whitespace-nowrap">
+                    Buscar
+                </button>
+
+                <!-- Botón de Refrescar / Regresar Azul con Símbolo -->
+                <a href="?" class="bg-blue-600 hover:bg-blue-500 text-white p-2.5 rounded-lg transition-colors shadow flex items-center justify-center" title="Limpiar búsqueda / Refrescar">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla Completa de Inscripciones y Pagos -->
+    <div class="bg-slate-800 shadow-xl rounded-xl overflow-hidden border border-slate-700">
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-left text-sm text-gray-300">
+                <thead class="bg-blue-600 text-white uppercase text-xs tracking-wider">
+                    <tr>
+                        <th class="p-4">Nombre del Curso</th>
+                        <th class="p-4">Fecha de Pago</th>
+                        <th class="p-4">Método de Pago</th>
+                        <th class="p-4">Referencia de Pago</th>
+                        <th class="p-4">Monto</th>
+                        <th class="p-4 text-center">Estado</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-700">
+                    {% for item in inscripciones %}
+                    <tr class="hover:bg-slate-700/50 transition-colors">
+                        <td class="p-4 font-bold text-white">{{ item.nombre_curso }}</td>
+                        <td class="p-4 text-gray-400 text-xs">{{ item.fecha_pago|date:"Y-m-d H:i" }}</td>
+                        <td class="p-4 text-gray-300">{{ item.metodo_pago|default:"N/A" }}</td>
+                        
+                        <!-- Celda ajustada sin espacio interno innecesario ni barra de desplazamiento -->
+                        <td class="p-4">
+                            <div class="max-w-[220px] bg-slate-900/80 p-2 rounded border border-slate-700 font-mono text-xs text-gray-400 break-all leading-tight">
+                                {{ item.referencia_pago|default:"SIN REF" }}
+                            </div>
+                        </td>
+
+                        <td class="p-4 font-semibold text-emerald-400">${{ item.monto|default:item.costo }}</td>
+                        <td class="p-4 text-center">
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-900/50 text-emerald-400 border border-emerald-800">
+                                {{ item.estado }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="p-8 text-center text-gray-400">
+                            No estás inscrito en ningún curso actualmente.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Inclusión del modal externo -->
+{% include 'inventario/modal_inscribirme.html' %}
+
+<!-- Script para activar el modal -->
+<script>
+    function openInscribirmeModal() {
+        const modal = document.getElementById('modalInscribirme');
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+    }
+</script>
+
 {% endblock %}

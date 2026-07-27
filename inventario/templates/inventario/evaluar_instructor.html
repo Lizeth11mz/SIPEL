@@ -1,82 +1,54 @@
 {% extends 'core/base_instructor.html' %}
-{% load static %}
 
 {% block title %}Calificar Alumnos{% endblock %}
 
 {% block content %}
-<div style="background-color: #ff9800; padding: 15px 20px; border-radius: 5px; display: inline-block; margin-bottom: 20px;">
-    <h1 class="header-title" style="margin: 0; color: white; font-size: 24px;">⭐ CALIFICAR ALUMNOS</h1>
-</div>
 
-<div class="layout-container" style="display: flex; gap: 20px; align-items: flex-start;">
+<h1 class="text-3xl font-bold mb-6">⭐ Calificar Alumnos</h1>
 
-    <!-- Panel de Filtros -->
-    <div class="filter-container" style="flex: 0 0 300px; background: #16212e; padding: 20px; border-radius: 8px; color: white;">
-        <form method="GET">
-            <h3 style="color: #ff9800; margin-top: 0;">FILTROS</h3>
+<table class="w-full bg-white shadow rounded">
+    <thead>
+        <tr class="bg-gray-100">
+            <th class="p-4 text-left">Estudiante</th>
+            <th class="p-4 text-left">Curso</th>
+            <th class="p-4 text-center">Calificación</th>
+            <th class="p-4 text-left">Comentarios</th>
+            <th class="p-4 text-center">Acción</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for insc in inscripciones %}
+        <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 15px; color: #000000;">{{ insc.estudiante.nombre_completo }}</td>
+            <td style="padding: 15px; color: #000000;">{{ insc.curso.nombre_curso }}</td>
             
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label>Curso:</label>
-                <select name="curso" style="width: 100%; padding: 8px; border-radius: 4px;">
-                    <option value="">Todos mis cursos</option>
-                    {% for c in cursos %}
-                        <option value="{{ c.id }}" {% if request.GET.curso == c.id|stringformat:"s" %}selected{% endif %}>
-                            {{ c.nombre_curso }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
+            <!-- Calificación obtenida -->
+            <td style="padding: 15px; text-align: center; color: #000000; font-weight: bold;">
+                {{ insc.calificacion|default:"N/A" }}
+            </td>
 
-            <button type="submit" style="width: 100%; padding: 10px; background: #ff9800; border: none; color: white; cursor: pointer; border-radius: 4px;">Aplicar Filtros</button>
-        </form>
-    </div>
+            <!-- Comentarios descifrados -->
+            <td style="padding: 15px; color: #555;">
+                {{ insc.comentarios|default:"Sin comentarios" }}
+            </td>
+           
+            <td style="padding: 15px; text-align: center;">
+                {% if insc.pk %}
+                    <a href="{% url 'inventario:registrar_nota' insc.pk %}"
+                       style="background: #28a745; color: white; padding: 8px 12px; text-decoration: none; border-radius: 4px; font-size: 0.9em;">
+                        ✏️ Calificar
+                    </a>
+                {% else %}
+                    <span style="color: red; font-size: 0.85em;">ID no disponible</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" style="padding: 20px; text-align: center; color: #000000;">No hay alumnos inscritos en tus cursos.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 
-    <!-- Tabla de Calificaciones -->
-    <div class="table-container" style="flex: 1;">
-        
-        <!-- Búsqueda -->
-        <form method="GET" style="display: flex; gap: 10px; margin-bottom: 20px; background: #16212e; padding: 15px; border-radius: 8px;">
-            <input type="text" name="q" placeholder="Buscar estudiante..." value="{{ request.GET.q }}" style="flex: 3; padding: 10px; border-radius: 4px; border: none;">
-            <button type="submit" class="btn-primary" style="flex: 1; padding: 10px; background-color: #007bff; border: none; color: white; cursor: pointer; border-radius: 4px;">🔍 Buscar</button>
-        </form>
-
-        <table class="data-table" style="width: 100%; border-collapse: collapse; background: white; color: #000000; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-            <thead>
-                <tr style="background-color: #104274; color: white;">
-                    <th style="padding: 15px; text-align: left;">Estudiante</th>
-                    <th style="padding: 15px; text-align: left;">Curso</th>
-                    <th style="padding: 15px; text-align: center;">Calificación</th>
-                    <th style="padding: 15px; text-align: center;">Acción</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for insc in inscripciones %}
-                <tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 15px; color: #000000;">{{ insc.estudiante.nombre_completo }}</td>
-                    <td style="padding: 15px; color: #000000;">{{ insc.curso.nombre_curso }}</td>
-                    
-                    <!-- Obtenemos la calificación si ya existe para esta inscripción -->
-                    <td style="padding: 15px; text-align: center; color: #000000; font-weight: bold;">
-                        {% with nota=insc.evaluacion_set.first %}
-                            {{ nota.calificacion|default:"N/A" }}
-                        {% endwith %}
-                    </td>
-                    
-                    <td style="padding: 15px; text-align: center;">
-                        <a href="{% url 'inventario:registrar_nota' insc.id %}" 
-                           style="background: #28a745; color: white; padding: 8px 12px; text-decoration: none; border-radius: 4px; font-size: 0.9em;">
-                           ✏️ Calificar
-                        </a>
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="4" style="padding: 20px; text-align: center; color: #000000;">No hay alumnos inscritos en tus cursos.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <p style="margin-top: 10px; color: #666;">Mostrando {{ inscripciones|length }} registro(s)</p>
-    </div>
-</div>
 {% endblock %}

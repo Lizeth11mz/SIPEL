@@ -1,0 +1,87 @@
+<!-- Modal de Nueva Inscripción (Diseño de Doble Columna Corregido) -->
+<div id="modalInscribirme" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+    <div style="background-color: #ffffff; margin: auto; padding: 24px; border: 1px solid #e5e7eb; width: 100%; max-width: 950px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+        
+        <!-- Cabecera del Modal -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid #f3f4f6; margin-bottom: 20px;">
+            <h5 style="margin: 0; font-size: 1.35rem; font-weight: 700; color: #1e3a8a; display: flex; align-items: center; gap: 8px;">
+                <span>📝</span> Inscribirme a un Nuevo Curso
+            </h5>
+            <span style="font-size: 28px; font-weight: bold; cursor: pointer; color: #9ca3af;" onclick="closeInscribirmeModal()">&times;</span>
+        </div>
+
+        <!-- Formulario de Inscripción con Estructura de 2 Columnas -->
+        <form method="POST" action="{% url 'inventario:inscribir_curso' %}">
+            {% csrf_token %}
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start;">
+                
+                <!-- Columna Izquierda: Cursos Disponibles -->
+                <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; background: #f9fafb;">
+                    <h3 style="margin-top: 0; font-size: 1rem; font-weight: 700; color: #1e3a8a; margin-bottom: 4px;">Cursos Disponibles</h3>
+                    <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 12px;">Selecciona el curso que deseas inscribirte.</p>
+                    
+                    <div style="max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                        {% for c in cursos_disponibles %}
+                        <label style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer;">
+                            <div>
+                                <span style="font-weight: 600; color: #1f2937; display: block; font-size: 0.9rem;">{{ c.nombre_curso }}</span>
+                                <span style="font-size: 0.8rem; color: #059669; font-weight: bold;">${{ c.costo }}</span>
+                            </div>
+                            <input type="radio" name="curso_id" value="{{ c.curso_id }}" required style="cursor: pointer;">
+                        </label>
+                        {% empty %}
+                        <p style="text-align: center; color: #6b7280; font-size: 0.9rem; padding: 20px;">No hay cursos disponibles.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Columna Derecha: Detalles de Pago -->
+                <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <div>
+                        <h3 style="margin-top: 0; font-size: 1rem; font-weight: 700; color: #1e3a8a; margin-bottom: 4px;">Detalles de Inscripción</h3>
+                        <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 12px;">Completa la información para finalizar tu inscripción.</p>
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 4px;">Método de Pago</label>
+                        <select name="metodo_pago" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: #ffffff; color: #374151;" required>
+                            <option value="" disabled selected hidden>-- Selecciona método de pago --</option>
+                            <option value="Tarjeta de crédito">Tarjeta de crédito</option>
+                            <option value="Tarjeta de Débito">Tarjeta de Débito</option>
+                            <option value="Transferencia bancaria">Transferencia bancaria</option>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="PayPal">PayPal</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label style="display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 4px;">Referencia de Pago</label>
+                        <input type="text" name="referencia_pago" placeholder="Ej. REF12345678" style="width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; background: #ffffff; color: #374151; box-sizing: border-box;" required>
+                    </div>
+
+                    <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 10px; border-radius: 6px;">
+                        <p style="margin: 0; font-size: 0.8rem; color: #1e40af;">ℹ️ Una vez confirmada tu inscripción, tu pago se registrará como Pagado automáticamente y recibirás un correo con los detalles.</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Botones de Acción al Pie del Modal -->
+            <div style="display: flex; justify-content: flex-end; gap: 12px; border-top: 1px solid #f3f4f6; margin-top: 24px; padding-top: 16px;">
+                <button type="button" onclick="closeInscribirmeModal()" style="padding: 10px 18px; background: #f3f4f6; border: 1px solid #d1d5db; color: #4b5563; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Cancelar</button>
+                <button type="submit" name="accion" value="inscribir" style="padding: 10px 20px; background-color: #2563eb; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);">Inscribirme</button>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script>
+    function closeInscribirmeModal() {
+        document.getElementById('modalInscribirme').style.display = 'none';
+    }
+    function openInscribirmeModal() {
+        document.getElementById('modalInscribirme').style.display = 'flex';
+    }
+</script>

@@ -55,4 +55,13 @@ urlpatterns = [
     path('usuarios/cambiar-contrasena/<int:user_id>/', views.cambiar_contrasena_usuario, name='cambiar_contrasena_usuario'),
     # --- LOGOUT ---
     path('logout/', views.custom_logout_view, name='logout'),
+
+
+    #--------------path('estudiante/cmaterias,pagos,incripciones -----
+    path('estudiante/mis_materias/', views.mis_materias,name='mis_materias'),
+    path('estudiante/inscripciones/', views.mis_inscripciones, name='mis_inscripciones'),
+   path('estudiante/inscribirme/', views.inscribir_curso, name='inscribir_curso'),
+    path('estudiante/evaluaciones/', views.mis_evaluaciones, name='mis_evaluaciones'),
+    path('estudiante/pagos/', views.mis_pagos, name='mis_pagos'),
+    path('estudiante/pagos/descargar/<int:pago_id>/', views.descargar_comprobante_pdf, name='descargar_comprobante_pdf'),
 ]
