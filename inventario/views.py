@@ -578,32 +578,113 @@ def eliminar_instructor(request, instructor_id):
 
 
 # --- INSCRIPCIONES ---
+# --- INSCRIPCIONES ---
 @login_required
 @role_required(allowed_roles=['Admin', 'Estudiante'])
 def gestion_inscripciones(request):
-    inscripciones = Inscripcion.objects.all()
+    # Partimos de todas las inscripciones con las relaciones optimizadas
+    inscripciones = Inscripcion.objects.select_related('estudiante', 'curso', 'instructor').all()
+    
+    # Capturamos los parámetros de búsqueda del método GET
+    query_estudiante = request.GET.get('q', '').strip()
+    curso_id = request.GET.get('curso', '').strip()
+    estado_filtro = request.GET.get('estado', '').strip()
+
+    # Aplicamos filtro por estudiante (buscando por nombre completo)
+    if query_estudiante:
+        inscripciones = inscripciones.filter(
+            Q(estudiante__nombre_completo__icontains=query_estudiante)
+        )
+
+    # Aplicamos filtro por curso
+    if curso_id:
+        inscripciones = inscripciones.filter(curso__curso_id=curso_id)
+
+    # Aplicamos filtro por estado ('Pagado' o 'Cancelado')
+    if estado_filtro:
+        inscripciones = inscripciones.filter(estado=estado_filtro)
+
+    # Listas para poblar los selectores del formulario
     estudiantes = Estudiante.objects.all()
     cursos = Curso.objects.all()
     instructores = Instructor.objects.all()
     
+    # Cálculo de estadísticas generales (basado en toda la tabla sin filtros aplicados)
+    total_inscripciones = Inscripcion.objects.count()
+    total_pagados = Inscripcion.objects.filter(estado='Pagado').count()
+    total_canceladas = Inscripcion.objects.filter(estado='Cancelado').count()
+
     return render(request, 'inventario/inscripciones.html', {
         'inscripciones': inscripciones,
         'estudiantes': estudiantes,
         'cursos': cursos,
         'instructores': instructores,
+        'total_inscripciones': total_inscripciones,
+        'total_pagados': total_pagados,
+        'total_canceladas': total_canceladas,
     })
-
-
-login_required
+@login_required
 @role_required(allowed_roles=['Admin'])
 def crear_inscripciones(request):
     if request.method == 'POST':
-        form = InscripcionForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Inscripción creada.')
-    return redirect('inventario:gestion_inscripciones')
+        try:
+            estudiante_id = request.POST.get('estudiante')
+            curso_id = request.POST.get('curso')
+            instructor_id = request.POST.get('instructor')
+            estado = request.POST.get('estado') # Capturará 'Pagado' o 'Cancelado'
+            
+            metodo_pago = request.POST.get('metodo_pago')
+            referencia_pago = request.POST.get('folio_inscripcion', '').strip()
+            
+            # Si la referencia está vacía, se puede asignar un valor por defecto o dejarla limpia
+            if not referencia_pago:
+                referencia_pago = "EFECTIVO"
 
+            curso_actual = get_object_or_404(Curso, pk=curso_id)
+            
+            import random
+            folio_generado = random.randint(2000, 9999)
+
+            estudiante_db_id = int(estudiante_id)
+            curso_db_id = int(curso_actual.curso_id)
+            instructor_db_id = int(instructor_id) if instructor_id else "NULL"
+            folio_db = int(folio_generado)
+            costo_db = float(curso_actual.costo) if hasattr(curso_actual, 'costo') else 0.00
+            
+            metodo_clean = metodo_pago.replace("'", "''") if metodo_pago else ""
+            referencia_clean = referencia_pago.replace("'", "''") if referencia_pago else ""
+            estado_clean = estado.replace("'", "''") if estado else "Pagado"
+
+            sql_ejecucion = f"""
+                EXEC sp_RegistrarInscripcionConPago 
+                    @estudiante_id = {estudiante_db_id}, 
+                    @curso_id = {curso_db_id}, 
+                    @instructor_id = {instructor_db_id}, 
+                    @folio_inscripcion = {folio_db}, 
+                    @total_pago = {costo_db}, 
+                    @estado_inscripcion = '{estado_clean}', 
+                    @metodo_pago = '{metodo_clean}', 
+                    @referencia_pago = '{referencia_clean}';
+            """
+
+            with connection.cursor() as cursor:
+                cursor.execute(sql_ejecucion)
+            
+            if estado == 'Cancelado':
+                messages.warning(request, 'La inscripción del estudiante ha sido marcada como cancelada.')
+            else:
+                messages.success(request, 'Inscripción y pago registrados correctamente por el administrador.')
+            
+            return redirect('inventario:gestion_inscripciones')
+                
+        except Exception as e:
+            print("--- ERROR DETALLADO EN INSCRIPCIÓN ADMIN ---")
+            import traceback
+            traceback.print_exc()
+            from django.http import HttpResponse
+            return HttpResponse(f"<h1>Error atrapado:</h1><pre>{e}</pre>", status=500)
+            
+    return redirect('inventario:gestion_inscripciones')
 
 @login_required
 @role_required(allowed_roles=['Admin'])
@@ -631,36 +712,136 @@ def eliminar_inscripcion(request, inscripcion_id):
 
 # --- EVALUACIONES Y OTROS ---
 @login_required
+@role_required(allowed_roles=['Admin'])
 def gestion_evaluaciones(request):
+    query = request.GET.get('q', '').strip()
+    curso_id = request.GET.get('curso', '').strip()
+    
     evaluaciones = []
+    cursos = []
+    
     with connection.cursor() as cursor:
-        cursor.execute("EXEC SP_Listar_Evaluaciones")
+        # 1. Abrir Master Key y Llave Simétrica para permitir el descifrado
+        cursor.execute("OPEN MASTER KEY DECRYPTION BY PASSWORD = 'MiPassword123*';")
+        cursor.execute("OPEN SYMMETRIC KEY ClaveDatos DECRYPTION BY CERTIFICATE CertificadoDatos;")
+        
+        # Obtener lista de cursos para el menú desplegable del buscador
+        cursor.execute("SELECT curso_id, nombre_curso FROM Cursos")
+        cursos_cols = [col[0] for col in cursor.description]
+        cursos = [dict(zip(cursos_cols, row)) for row in cursor.fetchall()]
+        
+        # 2. Construir la consulta SQL con filtros dinámicos
+        sql = """
+            SELECT 
+                ev.evaluacion_id,
+                CONCAT(au.first_name, ' ', au.last_name) AS estudiante,
+                c.nombre_curso,
+                ev.calificacion,
+                CAST(DecryptByKey(ev.comentarios) AS VARCHAR(MAX)) AS comentarios,
+                ev.fecha_evaluacion
+            FROM Evaluaciones ev
+            INNER JOIN Inscripciones i ON ev.inscripcion_id = i.inscripcion_id
+            INNER JOIN Estudiantes e ON i.estudiante_id = e.estudiante_id
+            INNER JOIN auth_user au ON e.usuario_id = au.id
+            INNER JOIN Cursos c ON i.curso_id = c.curso_id
+            WHERE 1=1
+        """
+        params = []
+        
+        if query:
+            sql += " AND (CONCAT(au.first_name, ' ', au.last_name) LIKE %s OR au.first_name LIKE %s OR au.last_name LIKE %s)"
+            params.extend([f"%{query}%", f"%{query}%", f"%{query}%"])
+            
+        if curso_id:
+            sql += " AND c.curso_id = %s"
+            params.append(curso_id)
+            
+        cursor.execute(sql, params)
         columns = [col[0] for col in cursor.description]
         rows = cursor.fetchall()
         
         for row in rows:
             cleaned_row = []
-            for val in row:
+            fila_dict = dict(zip(columns, row))
+            
+            for col_name, val in fila_dict.items():
                 if isinstance(val, bytes):
                     try:
                         val = val.decode('utf-8', errors='ignore')
                     except Exception:
                         val = str(val)
                 cleaned_row.append(val)
+                
             evaluaciones.append(dict(zip(columns, cleaned_row)))
 
+        # 3. Cerrar la llave simétrica por seguridad
+        cursor.execute("CLOSE SYMMETRIC KEY ClaveDatos;")
+
     return render(request, 'inventario/evaluaciones.html', {
-        'evaluaciones': evaluaciones
+        'evaluaciones': evaluaciones,
+        'cursos': cursos,
+        'query': query,
+        'curso_seleccionado': curso_id
     })
-
-def custom_logout_view(request):
-    logout(request)
-    return redirect('core:index')
-
 
 
 @login_required
 @role_required(allowed_roles=['Admin'])
+def editar_evaluacion(request, pk):
+    with connection.cursor() as cursor:
+        # Abrir llave para poder leer los comentarios cifrados al momento de editar
+        cursor.execute("OPEN MASTER KEY DECRYPTION BY PASSWORD = 'MiPassword123*';")
+        cursor.execute("OPEN SYMMETRIC KEY ClaveDatos DECRYPTION BY CERTIFICATE CertificadoDatos;")
+        
+        if request.method == 'POST':
+            calificacion = request.POST.get('calificacion')
+            comentarios = request.POST.get('comentarios')
+            
+            # Actualizar cifrando nuevamente el comentario si es necesario o directo
+            cursor.execute("""
+                UPDATE Evaluaciones 
+                SET calificacion = %s, comentarios = EncryptByKey(Key_GUID('ClaveDatos'), CONVERT(VARCHAR(MAX), %s))
+                WHERE evaluacion_id = %s
+            """, [calificacion, comentarios, pk])
+            
+            cursor.execute("CLOSE SYMMETRIC KEY ClaveDatos;")
+            return redirect('inventario:gestion_evaluaciones')
+            
+        # Obtener los datos actuales de la evaluación para mostrarlos en el formulario
+        cursor.execute("""
+            SELECT evaluacion_id, calificacion, CAST(DecryptByKey(comentarios) AS VARCHAR(MAX)) AS comentarios 
+            FROM Evaluaciones WHERE evaluacion_id = %s
+        """, [pk])
+        row = cursor.fetchone()
+        
+        cursor.execute("CLOSE SYMMETRIC KEY ClaveDatos;")
+        
+    evaluacion = {
+        'evaluacion_id': row[0],
+        'calificacion': row[1],
+        'comentarios': row[2]
+    }
+    
+    return render(request, 'inventario/editar_evaluacion.html', {'evaluacion': evaluacion})
+
+@login_required
+@role_required(allowed_roles=['Admin'])
+def eliminar_evaluacion(request, pk):
+    if request.method == 'POST':
+        with connection.cursor() as cursor:
+            cursor.execute("OPEN MASTER KEY DECRYPTION BY PASSWORD = 'MiPassword123*';")
+            cursor.execute("OPEN SYMMETRIC KEY ClaveDatos DECRYPTION BY CERTIFICATE CertificadoDatos;")
+            
+            cursor.execute("DELETE FROM Evaluaciones WHERE evaluacion_id = %s", [pk])
+            
+            cursor.execute("CLOSE SYMMETRIC KEY ClaveDatos;")
+        return redirect('inventario:gestion_evaluaciones')
+        
+    return render(request, 'inventario/confirmar_eliminacion.html', {'pk': pk})
+
+
+
+@login_required
 def reportes_view(request):
     return render(request, 'inventario/reportes.html')
 #---------usuarios-----------------
@@ -1045,14 +1226,13 @@ def mis_inscripciones(request):
 @role_required(allowed_roles=['Estudiante'])
 def inscribir_curso(request):
     if request.method == 'POST':
-        curso_id = request.POST.get('curso_id')
-        metodo_pago = request.POST.get('metodo_pago')
-        referencia_pago = request.POST.get('referencia_pago', '').strip()
-        
-        accion = request.POST.get('accion')
-        estado_destino = 'Cancelada' if accion == 'cancelar' else 'Pagado'
-        
-        try:
+            curso_id = request.POST.get('curso_id')
+            metodo_pago = request.POST.get('metodo_pago')
+            referencia_pago = request.POST.get('referencia_pago', '').strip()
+            
+            accion = request.POST.get('accion')
+            estado_destino = 'Cancelada' if accion == 'cancelar' else 'Pagado'
+            
             estudiante_actual = Estudiante.objects.filter(usuario_auth=request.user).first()
             if not estudiante_actual:
                 estudiante_actual = Estudiante.objects.filter(usuario_id=request.user.id).first()
@@ -1066,7 +1246,6 @@ def inscribir_curso(request):
             import random
             folio_generado = random.randint(2000, 9999)
 
-            # Preparar valores seguros para la inyección directa por f-string
             estudiante_db_id = int(estudiante_actual.estudiante_id)
             curso_db_id = int(curso_actual.curso_id)
             instructor_db_id = int(instructor_id) if instructor_id else "NULL"
@@ -1077,7 +1256,6 @@ def inscribir_curso(request):
             referencia_clean = referencia_pago.replace("'", "''") if referencia_pago else ""
             estado_clean = estado_destino.replace("'", "''")
 
-            # Ejecución directa mediante cadena f-string (Evita que Django busque los signos ?)
             sql_ejecucion = f"""
                 EXEC sp_RegistrarInscripcionConPago 
                     @estudiante_id = {estudiante_db_id}, 
@@ -1099,13 +1277,6 @@ def inscribir_curso(request):
                 messages.success(request, 'Te has inscrito y registrado tu pago correctamente.')
             
             return redirect('inventario:mis_inscripciones')
-                
-        except Exception as e:
-            print("--- ERROR DETALLADO EN INSCRIPCIÓN ---")
-            traceback.print_exc()
-            from django.http import HttpResponse
-            return HttpResponse(f"<h1>Error atrapado:</h1><pre>{e}</pre>", status=500)
-            
     return redirect('inventario:mis_inscripciones')
 @login_required
 @role_required(allowed_roles=['Estudiante'])

@@ -47,14 +47,15 @@
         </button>
     </div>
 
+    <!-- TARJETAS DE ESTADÍSTICAS CORREGIDAS -->
     <div class="stats-container">
         <div class="stat-card">🔵 <div><span class="stat-label">Total Inscripciones</span><span class="stat-number">{{ total_inscripciones }}</span></div></div>
-        <div class="stat-card">✅ <div><span class="stat-label">Activas</span><span class="stat-number">{{ total_activas }}</span></div></div>
+        <div class="stat-card">✅ <div><span class="stat-label">Pagados</span><span class="stat-number">{{ total_pagados }}</span></div></div>
         <div class="stat-card">❌ <div><span class="stat-label">Canceladas</span><span class="stat-number">{{ total_canceladas }}</span></div></div>
     </div>
 
     <form method="GET" class="filter-bar">
-        <input type="text" name="q" placeholder="Buscar por ID estudiante..." value="{{ request.GET.q }}">
+        <input type="text" name="q" placeholder="Buscar por estudiante..." value="{{ request.GET.q }}">
         
         <select name="curso">
             <option value="">Todos los cursos</option>
@@ -67,8 +68,8 @@
 
         <select name="estado">
             <option value="">Todos los estados</option>
-            <option value="Activo" {% if request.GET.estado == 'Activo' %}selected{% endif %}>Activo</option>
-            <option value="Inactivo" {% if request.GET.estado == 'Inactivo' %}selected{% endif %}>Inactivo</option>
+            <option value="Pagado" {% if request.GET.estado == 'Pagado' %}selected{% endif %}>Pagado</option>
+            <option value="Cancelado" {% if request.GET.estado == 'Cancelado' %}selected{% endif %}>Cancelado</option>
         </select>
         
         <button type="submit" class="btn-buscar">Buscar</button>
@@ -79,10 +80,10 @@
         <table>
             <thead>
                 <tr>
-                    <th>Inscripcion ID</th>
-                    <th>Estudiante ID</th>
-                    <th>Curso ID</th>
-                    <th>Instructor ID</th>
+                    <th>ID</th>
+                    <th>Estudiante</th>
+                    <th>Curso</th>
+                    <th>Instructor</th>
                     <th>Folio</th>
                     <th>Fecha</th>
                     <th>Estado</th>
@@ -94,13 +95,13 @@
                 {% for inscripcion in inscripciones %}
                 <tr>
                     <td>{{ inscripcion.inscripcion_id }}</td>
-                    <td>{{ inscripcion.estudiante_id }}</td>
-                    <td>{{ inscripcion.curso_id }}</td>
-                    <td>{{ inscripcion.instructor_id }}</td>
+                    <td>{{ inscripcion.estudiante.nombre_completo }}</td>
+                    <td>{{ inscripcion.curso.nombre_curso }}</td>
+                    <td>{{ inscripcion.instructor.nombre_completo }}</td>
                     <td>{{ inscripcion.folio_inscripcion }}</td>
                     <td>{{ inscripcion.fecha_inscripcion|date:"d/m/Y" }}</td>
                     <td>
-                        <span class="badge {% if inscripcion.estado == 'Activo' %}badge-activo{% else %}badge-cancelado{% endif %}">
+                        <span class="badge {% if inscripcion.estado == 'Activo' or inscripcion.estado == 'Pagado' %}badge-activo{% else %}badge-cancelado{% endif %}">
                             {{ inscripcion.estado }}
                         </span>
                     </td>

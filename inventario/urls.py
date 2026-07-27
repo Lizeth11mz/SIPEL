@@ -45,6 +45,8 @@ urlpatterns = [
     
     # --- REPORTES Y EVALUACIONES ---
     path('evaluaciones/', views.gestion_evaluaciones, name='gestion_evaluaciones'),
+    path('evaluaciones/editar/<int:pk>/', views.editar_evaluacion, name='editar_evaluacion'),
+path('evaluaciones/eliminar/<int:pk>/', views.eliminar_evaluacion, name='eliminar_evaluacion'),
     path('reportes/', views.reportes_view, name='reportes'),
     
     # --- GESTIÓN USUARIOS ---
