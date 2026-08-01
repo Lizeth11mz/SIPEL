@@ -1,0 +1,16 @@
+{% extends 'inventario/base.html' %} <!-- O el layout base que estés utilizando -->
+
+{% block content %}
+<div class="container" style="padding: 20px; color: black;">
+    <h2>{{ titulo }}</h2>
+    
+    <form method="POST">
+        {% csrf_token %}
+        
+        {{ form.as_p }}
+        
+        <button type="submit" class="btn btn-success">Guardar Nueva Contraseña</button>
+        <a href="{% url 'inventario:gestion_usuarios' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

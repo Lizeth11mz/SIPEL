@@ -1,5 +1,4 @@
 {% extends 'core/base.html' %}
-
 {% load static %}
 
 {% block title %}Estudiantes{% endblock %}
@@ -87,34 +86,40 @@
     <table style="width: 100%; border-collapse: collapse; color: white; table-layout: fixed;">
         <thead>
             <tr style="border-bottom: 1px solid #30363d; color: #8b949e; text-align: left;">
-                <th style="padding: 15px; width: 5%;">ID</th>
-                <th style="padding: 15px; width: 18%;">Nombre Completo</th>
-                <th style="padding: 15px; width: 20%;">Correo</th>
-                <th style="padding: 15px; width: 12%;">Teléfono</th>
-                <th style="padding: 15px; width: 18%; text-align: left;">Documento</th>
-                <th style="padding: 15px; width: 12%;">Registro</th>
-                <th style="padding: 15px; width: 9%; text-align: center;">Estado</th>
-                <th style="padding: 15px; width: 11%; text-align: center;">Acciones</th>
+                <th style="padding: 12px 8px; width: 5%;">ID</th>
+                <th style="padding: 12px 8px; width: 16%;">Nombre Completo</th>
+                <th style="padding: 12px 8px; width: 16%;">Correo</th>
+                <th style="padding: 12px 8px; width: 11%;">Teléfono</th>
+                <th style="padding: 12px 8px; width: 14%;">Dirección</th>
+                <th style="padding: 12px 8px; width: 14%;">Documento</th>
+                <th style="padding: 12px 8px; width: 11%;">Registro</th>
+                <th style="padding: 12px 8px; width: 7%; text-align: center;">Estado</th>
+                <th style="padding: 12px 8px; width: 6%; text-align: center;">Acciones</th>
             </tr>
         </thead>
         <tbody>
             {% for est in estudiantes %}
-            <tr style="border-bottom: 1px solid #21262d;">
-                <td style="padding: 15px; word-break: break-word;">{{ est.estudiante_id }}</td>
-                <td style="padding: 15px; word-break: break-word;">{{ est.nombre_completo }}</td>
-                <td style="padding: 15px; word-break: break-all; font-size: 0.9em;">{{ est.email }}</td>
-                <td style="padding: 15px; word-break: break-word;">{{ est.telefono }}</td>
+            <tr style="border-bottom: 1px solid #21262d; vertical-align: middle;">
+                <td style="padding: 12px 8px; word-break: break-word;">{{ est.estudiante_id }}</td>
+                <td style="padding: 12px 8px; word-break: break-word;">{{ est.nombre_completo }}</td>
+                <td style="padding: 12px 8px; word-break: break-all; font-size: 0.9em;">{{ est.email }}</td>
+                <td style="padding: 12px 8px; word-break: break-word;">{{ est.telefono }}</td>
                 
-                <!-- CELDA DOCUMENTO -->
-                <td style="padding: 15px; text-align: left; word-break: break-word;">
-                    <div style="font-weight: bold; margin-bottom: 6px; color: white; font-size: 13px; text-align: left;">
-                        {{ est.tipo_documento }}
+                <!-- CELDA DIRECCIÓN -->
+                <td style="padding: 12px 8px; word-break: break-word; color: #c9d1d9; font-size: 0.9em;">
+                    {{ est.direccion|default:"S/N" }}
+                </td>
+               
+                <!-- CELDA DOCUMENTO (Protegida contra desbordamientos visuales) -->
+                <td style="padding: 12px 8px; text-align: left; word-break: break-word;">
+                    <div style="font-weight: bold; margin-bottom: 4px; color: white; font-size: 12px;">
+                        {{ est.tipo_documento|default:"Sin tipo" }}
                     </div>
-                    <div style="font-family: monospace; font-size: 11px; color: #8b949e; word-break: break-all; background: #161b22; padding: 6px 8px; border-radius: 6px; border: 1px solid #30363d; width: 100%; box-sizing: border-box;">
-                        {{ est.numero_documento }}
+                    <div style="font-family: monospace; font-size: 11px; color: #8b949e; background: #161b22; padding: 4px 6px; border-radius: 6px; border: 1px solid #30363d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ est.numero_documento }}">
+                        {{ est.numero_documento|default:"S/N" }}
                     </div>
                 </td>
-                
+               
                 <td style="padding: 12px 8px; font-size: 0.85em; word-break: break-word;">
                     {{ est.fecha_registro|date:"Y-m-d H:i"|default:est.fecha_registro }}
                 </td>

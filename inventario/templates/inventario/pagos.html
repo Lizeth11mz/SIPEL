@@ -1,110 +1,230 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}Pagos{% endblock %}
+{% block title %}Gestión de Pagos{% endblock %}
 
 {% block content %}
 <style>
-    .page-wrapper { padding: 20px; font-family: sans-serif; background-color: #1e2630; min-height: 100vh; color: white; }
-    .header-box { background: #ff9800; padding: 10px 20px; border-radius: 8px; display: inline-block; margin-bottom: 25px; }
-    .main-layout { display: flex; gap: 20px; align-items: flex-start; }
+    .page-wrapper { padding: 20px 30px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; min-height: 100vh; color: #f8fafc; max-width: 100%; box-sizing: border-box; }
     
-    /* Sidebar Fija */
-    .filters-sidebar { flex: 0 0 300px; background: #2c3e50; padding: 20px; border-radius: 8px; }
-    .filters-sidebar label { display: block; margin-top: 15px; margin-bottom: 5px; font-size: 0.9em; color: #bdc3c7; }
+    .header-box { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 2px solid #334155; padding-bottom: 15px; }
+    .header-box h1 { margin: 0; font-size: 24px; color: #f8fafc; display: flex; align-items: center; gap: 10px; }
     
-    /* Área Principal */
-    .content-area { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+    /* Layout Ampliado */
+    .main-layout { display: flex; gap: 25px; align-items: flex-start; width: 100%; }
+    
+    /* Sidebar Fija de Filtros */
+    .filters-sidebar { flex: 0 0 280px; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #334155; }
+    .filters-sidebar h3 { font-size: 16px; color: #f8fafc; border-bottom: 2px solid #f97316; padding-bottom: 10px; margin-top: 0; margin-bottom: 20px; letter-spacing: 0.5px; }
+    .filters-sidebar label { display: block; margin-top: 15px; margin-bottom: 6px; font-size: 0.85em; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
+    
+    /* Área Principal Ampliada hacia abajo */
+    .content-area { flex: 1; display: flex; flex-direction: column; gap: 20px; min-width: 0; width: calc(100% - 305px); height: 100%; }
     
     /* Tarjetas de Resumen */
     .stats-row { display: flex; gap: 20px; }
-    .stat-card { flex: 1; background: #2c3e50; padding: 20px; border-radius: 8px; border: 1px solid #34495e; }
+    .stat-card { flex: 1; background: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #cbd5e1; display: flex; flex-direction: column; gap: 5px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+    .stat-card span { font-size: 0.85em; color: #475569; font-weight: 700; text-transform: uppercase; }
+    .stat-card strong { font-size: 24px; color: #000000; }
     
-    /* Buscador y Tabla */
-    .search-bar { background: #2c3e50; padding: 20px; border-radius: 8px; display: flex; gap: 10px; border: 1px solid #34495e; }
-    .table-card { background: #2c3e50; padding: 20px; border-radius: 8px; border: 1px solid #34495e; min-height: 300px; }
+    /* Buscador superior unificado */
+    .search-bar { background: #1e293b; padding: 15px 20px; border-radius: 12px; display: flex; gap: 12px; border: 1px solid #334155; align-items: center; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
     
-    select, input { background: #1a252f; color: white; border: 1px solid #34495e; padding: 10px; border-radius: 4px; width: 100%; }
-    .btn-orange { background: #ff9800; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    /* Controles de formulario */
+    select, input { background: #0f172a; color: #f8fafc; border: 1px solid #475569; padding: 12px; border-radius: 8px; width: 100%; font-size: 14px; transition: border-color 0.2s; }
+    select:focus, input:focus { outline: none; border-color: #f97316; }
+    
+    .btn-orange { background: #f97316; color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.2s, transform 0.1s; text-align: center; display: inline-block; text-decoration: none; }
+    .btn-orange:hover { background: #ea580c; }
+    
+    .btn-secondary { background: #334155; color: #cbd5e1; border: none; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px; width: 100%; margin-top: 10px; text-decoration: none; display: block; text-align: center; font-weight: 600; }
+    .btn-secondary:hover { background: #475569; color: white; }
+
+    .btn-icon { background: #0284c7; color: white; border: none; padding: 12px 14px; border-radius: 8px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: background 0.2s; }
+    .btn-icon:hover { background: #0369a1; }
+
+    /* Estilos de la Tabla Ampliada hacia abajo */
+    .table-card { 
+        background: #1e293b; 
+        padding: 25px; 
+        border-radius: 12px; 
+        border: 1px solid #334155; 
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
+        width: 100%; 
+        box-sizing: border-box; 
+        overflow-x: auto; 
+        min-height: 650px; 
+        flex: 1; 
+    }
+    table { width: 100%; border-collapse: collapse; text-align: left; table-layout: auto; }
+    th { padding: 16px 12px; color: #94a3b8; font-size: 0.75em; text-transform: uppercase; border-bottom: 2px solid #334155; letter-spacing: 0.5px; white-space: nowrap; }
+    td { padding: 18px 12px; border-bottom: 1px solid #334155; color: #e2e8f0; font-size: 13px; word-break: break-word; vertical-align: middle; }
+    tbody tr { transition: background-color 0.2s; }
+    tbody tr:hover { background-color: rgba(51, 65, 85, 0.4); }
+    
+    .ref-code {
+        font-family: monospace;
+        font-size: 11px;
+        color: #cbd5e1;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid #334155;
+        border-radius: 6px;
+        padding: 8px 10px;
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        white-space: pre-wrap;
+        word-break: break-all;
+        text-align: left;
+        margin: 0;
+    }
+
+    /* Botón Descargar PDF en Tabla */
+    .btn-pdf {
+        background-color: #2563eb;
+        color: #ffffff;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: background-color 0.2s;
+        white-space: nowrap;
+    }
+    .btn-pdf:hover { background-color: #1d4ed8; color: #fff; }
+
+    /* Badges de Estado */
+    .badge { padding: 5px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; display: inline-block; text-transform: uppercase; }
+    .badge-success { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-warning { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-danger { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
 </style>
 
 <div class="page-wrapper">
-    <div class="header-box"><h1>💰 PAGOS</h1></div>
+    <div class="header-box">
+        <h1>💰 Gestión de Pagos</h1>
+    </div>
 
-    <div class="main-layout">
+    <form method="GET" action="." class="main-layout">
+        
         <!-- Sidebar de Filtros -->
         <div class="filters-sidebar">
-            <form method="GET" action=".">
-                <h3 style="color: #ff9800; border-bottom: 2px solid #ff9800; padding-bottom: 10px;">FILTROS</h3>
-                
-                <label>Estudiante</label>
-                <select name="estudiante">
-                    <option value="">Seleccione estudiante</option>
-                    {% for e in estudiantes %}
-                        <option value="{{ e.id }}" {% if request.GET.estudiante == e.id|stringformat:"s" %}selected{% endif %}>{{ e.nombre }}</option>
-                    {% endfor %}
-                </select>
+            <h3>Filtros de Búsqueda</h3>
 
-                <label>Curso</label>
-                <select name="curso">
-                    <option value="">Seleccione curso</option>
-                    {% for c in cursos %}
-                        <!-- CORREGIDO: c.nombre_curso en lugar de c.nombre -->
-                        <option value="{{ c.id }}" {% if request.GET.curso == c.id|stringformat:"s" %}selected{% endif %}>{{ c.nombre_curso }}</option>
-                    {% endfor %}
-                </select>
+            <label>Curso</label>
+            <select name="curso">
+                <option value="">Todos los cursos</option>
+                {% for c in cursos %}
+                    <option value="{{ c.curso_id }}" {% if request.GET.curso == c.curso_id|stringformat:"s" %}selected{% endif %}>{{ c.nombre_curso }}</option>
+                {% endfor %}
+            </select>
 
-                <label>Estado del pago</label>
-                <select name="estado">
-                    <option value="">Seleccione estado</option>
-                    {% for valor, etiqueta in estado_choices %}
-                        <option value="{{ valor }}" {% if request.GET.estado == valor %}selected{% endif %}>{{ etiqueta }}</option>
-                    {% endfor %}
-                </select>
+            <label>Estado del pago</label>
+            <select name="estado">
+                <option value="">Todos los estados</option>
+                {% for valor, etiqueta in estado_choices %}
+                    <option value="{{ valor }}" {% if request.GET.estado == valor %}selected{% endif %}>{{ etiqueta }}</option>
+                {% endfor %}
+            </select>
 
-                <button type="submit" style="width: 100%; margin-top: 20px;" class="btn-orange">Aplicar Filtros</button>
-            </form>
+            <button type="submit" style="width: 100%; margin-top: 20px;" class="btn-orange">Aplicar Filtros</button>
+            <a href="." class="btn-secondary">Limpiar Filtros</a>
         </div>
 
         <!-- Área Principal -->
         <div class="content-area">
+            <!-- Tarjetas de Resumen -->
             <div class="stats-row">
-                <div class="stat-card">📋 Total: <strong>{{ total_pagos }}</strong></div>
-                <div class="stat-card">✅ Pagados: <strong>{{ pagos_registrados }}</strong></div>
-                <div class="stat-card">❌ Pendientes: <strong>{{ pagos_pendientes }}</strong></div>
+                <div class="stat-card">
+                    <span>Total Registros</span>
+                    <strong>{{ total_pagos }}</strong>
+                </div>
+                <div class="stat-card">
+                    <span>Pagados</span>
+                    <strong style="color: #10b981;">{{ pagos_registrados }}</strong>
+                </div>
+                <div class="stat-card">
+                    <span>Cancelados</span>
+                    <strong style="color: #ef4444;">{{ pagos_cancelados }}</strong>
+                </div>
             </div>
 
-            <form method="GET" action="." class="search-bar">
-                <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Buscar por folio, referencia o nombre...">
-                <button type="submit" class="btn-orange">BUSCAR</button>
-            </form>
+            <!-- Barra de Búsqueda -->
+            <div class="search-bar">
+                {% if request.GET.curso %}<input type="hidden" name="curso" value="{{ request.GET.curso }}">{% endif %}
+                {% if request.GET.estado %}<input type="hidden" name="estado" value="{{ request.GET.estado }}">{% endif %}
+                
+                <input type="text" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Buscar por nombre de estudiante...">
+                <button type="submit" class="btn-orange" style="white-space: nowrap;">Buscar</button>
+                <a href="." class="btn-icon" title="Recargar / Limpiar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.63-5.63"/></svg>
+                </a>
+            </div>
 
+            <!-- Tabla de Datos Ampliada con Columna Acciones -->
             <div class="table-card">
-                <table style="width: 100%; border-collapse: collapse;">
+                <table>
                     <thead>
-                        <tr style="text-align: left; color: #bdc3c7; border-bottom: 1px solid #34495e;">
-                            <th style="padding: 10px;">Folio</th><th>Estudiante</th><th>Curso</th><th>Fecha</th><th>Monto</th><th>Método</th><th>Estado</th>
+                        <tr>
+                            <th>Estudiante</th>
+                            <th>Curso</th>
+                            <th>Fecha pago</th>
+                            <th>Método de pago</th>
+                            <th>Referencia pago</th>
+                            <th>Monto</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for pago in pagos %}
-                        <tr style="border-bottom: 1px solid #34495e;">
-                            <td style="padding: 10px;">{{ pago.id }}</td>
-                            <td>{{ pago.inscripcion.estudiante.nombre }}</td>
-                            <!-- CORREGIDO: pago.inscripcion.curso.nombre_curso en lugar de .nombre -->
-                            <td>{{ pago.inscripcion.curso.nombre_curso }}</td>
-                            <td>{{ pago.fecha_pago }}</td>
-                            <td>${{ pago.monto }}</td>
-                            <td>{{ pago.metodo_pago }}</td>
-                            <td>{{ pago.get_estado_display }}</td>
+                        <tr>
+                            <td style="font-weight: 600; color: #f8fafc;">{{ pago.inscripcion.estudiante.nombre_completo|default:"N/A" }}</td>
+                            <td style="color: #94a3b8;">{{ pago.inscripcion.curso.nombre_curso|default:"N/A" }}</td>
+                            <td style="color: #94a3b8; font-size: 12px; white-space: nowrap;">{{ pago.fecha_pago }}</td>
+                            <td>{{ pago.metodo_pago|default:"N/A" }}</td>
+                            
+                            <td>
+                                {% if pago.referencia_pago %}
+                                    <div class="ref-code">{{ pago.referencia_pago|stringformat:"s" }}</div>
+                                {% else %}
+                                    <span style="color: #64748b;">S/R</span>
+                                {% endif %}
+                            </td>
+
+                            <td style="font-weight: 600; color: #34d399; white-space: nowrap;">${{ pago.monto }}</td>
+                            <td style="white-space: nowrap;">
+                                {% if pago.estado|lower == 'pagado' %}
+                                    <span class="badge badge-success">{{ pago.get_estado_display|default:pago.estado }}</span>
+                                {% elif pago.estado|lower == 'pendiente' %}
+                                    <span class="badge badge-warning">{{ pago.get_estado_display|default:pago.estado }}</span>
+                                {% else %}
+                                    <span class="badge badge-danger">{{ pago.get_estado_display|default:pago.estado }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <!-- RUTA CORREGIDA CON EL NAMESPACE 'inventario:' -->
+                                <a href="{% url 'inventario:admin_descargar_comprobante_pdf' pago.pago_id %}" class="btn-pdf">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                    Descargar PDF
+                                </a>
+                            </td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="7" style="text-align: center; padding: 20px;">No hay pagos registrados.</td></tr>
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                <div style="font-size: 16px; margin-bottom: 5px;">No se encontraron pagos registrados</div>
+                                <div style="font-size: 13px; color: #64748b;">Prueba ajustando los filtros de búsqueda o el texto ingresado.</div>
+                            </td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
-    </div>
+    </form>
 </div>
 {% endblock %}

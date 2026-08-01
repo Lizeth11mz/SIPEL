@@ -109,7 +109,7 @@
                     <td>
                         <!-- Botones de Acción -->
                         <a href="{% url 'inventario:editar_inscripcion' inscripcion.inscripcion_id %}" class="btn-accion btn-editar" title="Editar">✏️</a>
-                        <a href="{% url 'inventario:eliminar_inscripcion' inscripcion.inscripcion_id %}" class="btn-accion btn-eliminar" title="Eliminar" onclick="return confirm('¿Estás seguro de eliminar esta inscripción?');">🗑️</a>
+                      <a href="{% url 'inventario:eliminar_inscripcion' inscripcion.inscripcion_id %}" class="btn-accion btn-eliminar" title="Eliminar">🗑️</a>
                     </td>
                 </tr>
                 {% endfor %}

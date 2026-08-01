@@ -2,6 +2,11 @@
 print("--- LEYENDO EL ARCHIVO VIEWS.PY CORRECTO ---")
 from django.shortcuts import render, redirect, get_object_or_404
 from core.decorators import role_required
+from datetime import datetime
+import base64
+import html
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from django.db.models import Avg
 from django.http import Http404, FileResponse
 from django.contrib.auth.decorators import login_required
@@ -20,8 +25,14 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from django.conf import settings
+from django.http import HttpResponse
+from cryptography.fernet import Fernet
+from reportlab.platypus import LongTable
+from reportlab.lib.pagesizes import landscape
+from django.utils.html import escape
+import openpyxl
 from .models import Estudiante, Curso, Inscripcion, Pago, Instructor, Evaluacion
-from .forms import EstudianteForm, CursoForm, InstructorForm, InscripcionForm,CambiarContrasenaAdminForm
+from .forms import EstudianteForm, CursoForm, InstructorForm, InscripcionForm,UsuarioForm
 import traceback
 import os
 
@@ -282,8 +293,8 @@ def gestion_cursos(request):
     else:
         form = CursoForm()
 
-    # CORREGIDO AQUÍ: Usamos usuario_auth para que el filtro encuentre los cursos asignados al instructor logueado
-    base_queryset = Curso.objects.all() if request.user.is_superuser else Curso.objects.filter(instructor__usuario_auth=request.user)
+    # CORREGIDO: Añadido .select_related('instructor') para traer los datos del instructor junto al curso
+    base_queryset = Curso.objects.select_related('instructor').all() if request.user.is_superuser else Curso.objects.select_related('instructor').filter(instructor__usuario_auth=request.user)
     
     # Capturamos los parámetros de búsqueda y filtro de la URL (GET)
     query = request.GET.get('q', '').strip()
@@ -308,6 +319,7 @@ def gestion_cursos(request):
     }
     
     return render(request, 'inventario/cursos.html', context)
+  
 @login_required
 @role_required(allowed_roles=['Admin'])
 def crear_curso(request):
@@ -350,25 +362,188 @@ def editar_curso(request, curso_id):
         form = CursoForm(instance=curso)
     return render(request, 'inventario/editar_curso.html', {'form': form, 'curso': curso})
 
-
 @login_required
 @role_required(allowed_roles=['Admin'])
 def eliminar_curso(request, curso_id):
     curso = get_object_or_404(Curso, pk=curso_id)
     if request.method == 'POST':
         curso.delete()
-        messages.success(request, 'Curso eliminado.')
+        messages.success(request, 'Curso eliminado correctamente.')
         return redirect('inventario:gestion_cursos')
     return render(request, 'inventario/confirmar_eliminacion.html', {'objeto': curso, 'tipo': 'curso'})
+
 
 # --- GESTIÓN PAGOS ---
 @login_required
 @role_required(allowed_roles=['Admin'])
 def gestion_pagos(request):
-    pagos = Pago.objects.all()
-    return render(request, 'inventario/pagos.html', {'pagos': pagos})
+    # 1. Traemos los pagos optimizando las relaciones para evitar que el Estudiante salga como N/A
+    pagos = Pago.objects.select_related(
+        'inscripcion', 
+        'inscripcion__estudiante', 
+        'inscripcion__curso'
+    ).all()
 
+    # 2. Capturamos los filtros enviados por el formulario (GET)
+    curso_id = request.GET.get('curso')
+    estado = request.GET.get('estado')
+    query = request.GET.get('q')
 
+    # 3. Aplicamos los filtros condicionalmente si el usuario los seleccionó/escribió
+    if curso_id:
+        pagos = pagos.filter(inscripcion__curso_id=curso_id)
+        
+    if estado:
+        pagos = pagos.filter(estado=estado)
+        
+    if query:
+        # Busca por folio de inscripción, nombre completo del estudiante o texto libre
+        pagos = pagos.filter(
+            Q(inscripcion__folio_inscripcion__icontains=query) | 
+            Q(inscripcion__estudiante__nombre_completo__icontains=query) |
+            Q(metodo_pago__icontains=query)
+        )
+
+    # 4. Datos adicionales para las tarjetas de resumen y los selects del HTML
+    total_pagos = pagos.count()
+    pagos_registrados = pagos.filter(estado='Pagado').count()
+    pagos_cancelados = pagos.filter(estado='Cancelada').count() 
+    cursos = Curso.objects.all().order_by('nombre_curso')
+    
+    # Obtenemos los estados disponibles directamente del modelo para mantener consistencia
+    estado_choices = [
+        ('Pagado', 'Pagado'),
+        ('Cancelada', 'Cancelada'),
+    ]
+
+    context = {
+        'pagos': pagos,
+        'cursos': cursos,
+        'estado_choices': estado_choices,
+        'total_pagos': total_pagos,
+        'pagos_registrados': pagos_registrados,
+        'pagos_cancelados': pagos_cancelados,
+    }
+
+    return render(request, 'inventario/pagos.html', context)
+@login_required
+@role_required(allowed_roles=['Admin']) # O ['Administrador'] según corresponda en tu BD
+def admin_descargar_comprobante_pdf(request, pago_id):
+    # 1. Obtener datos del pago (sin descifrar para obtener los bytes cifrados)
+    with connection.cursor() as cursor:
+        try:
+            query = f"""
+                SELECT 
+                    p.pago_id,
+                    c.nombre_curso,
+                    p.fecha_pago,
+                    p.monto,
+                    p.estado,
+                    p.referencia_pago,
+                    e.nombre_completo
+                FROM Pagos p
+                INNER JOIN Inscripciones i ON p.inscripcion_id = i.inscripcion_id
+                INNER JOIN Cursos c ON i.curso_id = c.curso_id
+                INNER JOIN Estudiantes e ON i.estudiante_id = e.estudiante_id
+                WHERE p.pago_id = {int(pago_id)}
+            """
+            cursor.execute(query)
+            row = cursor.fetchone()
+        finally:
+            pass
+
+    if not row:
+        raise Http404("El comprobante no existe.")
+
+    # Procesar los bytes cifrados de la referencia para mostrarlos como cadena de bytes en el PDF
+    ref_raw = row[5]
+    referencia_cifrada = "N/A"
+    
+    if ref_raw:
+        try:
+            if isinstance(ref_raw, memoryview):
+                referencia_cifrada = str(ref_raw.tobytes())
+            elif isinstance(ref_raw, bytes):
+                referencia_cifrada = str(ref_raw)
+            else:
+                referencia_cifrada = str(ref_raw)
+        except Exception:
+            referencia_cifrada = "Error al procesar referencia"
+
+    pago_data = {
+        'pago_id': row[0],
+        'curso': row[1],
+        'fecha': row[2],
+        'monto': row[3],
+        'estado': row[4],
+        'referencia': referencia_cifrada,
+        'estudiante': row[6]
+    }
+
+    # 2. Definir la ruta de almacenamiento en media/reports
+    reports_dir = os.path.join(settings.MEDIA_ROOT, 'reports')
+    os.makedirs(reports_dir, exist_ok=True)
+
+    filename = f"comprobante_pago_admin_{pago_data['pago_id']}.pdf"
+    file_path = os.path.join(reports_dir, filename)
+
+    # 3. Generación del documento PDF con ReportLab
+    c = canvas.Canvas(file_path, pagesize=letter)
+    width, height = letter
+
+    # Encabezado estético
+    c.setFillColor(colors.HexColor("#312e81"))
+    c.rect(0, height - 100, width, 100, fill=1, stroke=0)
+
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 22)
+    c.drawString(50, height - 45, "SIPEL - COMPROBANTE DE PAGO")
+    c.setFont("Helvetica", 12)
+    c.drawString(50, height - 70, f"Comprobante Oficial N°: 0000{pago_data['pago_id']}")
+
+    # Cuerpo / Información del pago
+    c.setFillColor(colors.HexColor("#1f2937"))
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(50, height - 140, "Detalles de la Transacción:")
+
+    c.setFont("Helvetica", 12)
+    y_position = height - 180
+    space = 28
+
+    detalles = [
+        ("Estudiante:", pago_data['estudiante']),
+        ("Curso Adquirido:", pago_data['curso']),
+        ("Fecha y Hora:", pago_data['fecha'].strftime("%d/%m/%Y %H:%M") if pago_data['fecha'] else "N/A"),
+        ("Monto Cancelado:", f"${pago_data['monto']}"),
+        ("Estado del Pago:", pago_data['estado'].upper() if pago_data['estado'] else "N/A"),
+        ("Referencia de Pago:", pago_data['referencia'])
+    ]
+
+    for label, value in detalles:
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(50, y_position, label)
+        
+        # Fuente más pequeña para que el texto cifrado largo encaje mejor en el PDF del admin
+        c.setFont("Helvetica", 9)
+        c.drawString(200, y_position, str(value))
+        y_position -= space
+
+    # Línea divisoria inferior
+    c.setStrokeColor(colors.HexColor("#d1d5db"))
+    c.setLineWidth(1)
+    c.line(50, 130, width - 50, 130)
+
+    # Pie de página
+    c.setFont("Helvetica-Oblique", 9)
+    c.setFillColor(colors.HexColor("#6b7280"))
+    c.drawString(50, 100, "Este documento es un comprobante digital generado automáticamente por el sistema SIPEL.")
+    c.drawString(50, 85, "Conserve este archivo para cualquier aclaración futura.")
+
+    c.showPage()
+    c.save()
+
+    # 4. Servir el archivo generado
+    return FileResponse(open(file_path, 'rb'), as_attachment=False, filename=filename)
 #instructores-------------------------
 @login_required
 @role_required(allowed_roles=['Admin'])
@@ -487,8 +662,6 @@ def crear_instructor(request):
     return redirect('inventario:gestion_instructores')
 
 registrar_instructor = crear_instructor
-
-
 @login_required
 @role_required(allowed_roles=['Admin'])
 def editar_instructor(request, instructor_id):
@@ -508,6 +681,9 @@ def editar_instructor(request, instructor_id):
                 direccion = request.POST.get('direccion', '').upper().strip()
                 usuario = request.POST.get('usuario', '').strip()
                 nueva_cedula = request.POST.get('cedula_profesional', '').strip()
+                
+                # Capturamos la contraseña enviada en el formulario
+                nueva_password = request.POST.get('password', '').strip()
                 
                 with connection.cursor() as cursor:
                     # 2. Si el usuario ingresó una nueva cédula, la ciframos con SQL Server
@@ -543,13 +719,22 @@ def editar_instructor(request, instructor_id):
                             WHERE instructor_id = %s;
                         """, [nombre, email, telefono, direccion, usuario, especialidad, estado, instructor_id])
 
-                # 4. Sincronizamos con el usuario de autenticación si existe
+                # 4. Sincronizamos con el usuario de autenticación (auth_user)
                 if hasattr(instructor, 'usuario_auth') and instructor.usuario_auth:
                     user = instructor.usuario_auth
                     partes = nombre.strip().split(' ', 1)
                     user.first_name = partes[0]
                     user.last_name = partes[1] if len(partes) > 1 else ''
                     user.email = email
+                    
+                    # Actualizamos el username si cambió
+                    if usuario:
+                        user.username = usuario
+                        
+                    # AQUÍ ESTABA LA CLAVE: Actualizamos la contraseña de forma segura para que Django la reconozca en el login
+                    if nueva_password:
+                        user.set_password(nueva_password)
+                        
                     user.save()
 
             messages.success(request, 'Instructor actualizado correctamente.')
@@ -566,18 +751,24 @@ def editar_instructor(request, instructor_id):
         'form': form,
         'instructor': instructor
     })
+
 @login_required
 @role_required(allowed_roles=['Admin'])
 def eliminar_instructor(request, instructor_id):
     instructor = get_object_or_404(Instructor, pk=instructor_id)
+    
     if request.method == 'POST':
+        usuario_auth = getattr(instructor, 'usuario_auth', None)
         instructor.delete()
-        messages.success(request, 'Instructor eliminado.')
+        
+        if usuario_auth:
+            usuario_auth.delete()
+            
+        messages.success(request, 'Instructor eliminado correctamente.')
         return redirect('inventario:gestion_instructores')
+        
     return render(request, 'inventario/confirmar_eliminacion.html', {'objeto': instructor, 'tipo': 'instructor'})
 
-
-# --- INSCRIPCIONES ---
 # --- INSCRIPCIONES ---
 @login_required
 @role_required(allowed_roles=['Admin', 'Estudiante'])
@@ -600,7 +791,7 @@ def gestion_inscripciones(request):
     if curso_id:
         inscripciones = inscripciones.filter(curso__curso_id=curso_id)
 
-    # Aplicamos filtro por estado ('Pagado' o 'Cancelado')
+    # Aplicamos filtro por estado ('Pagado' o 'Cancelada')
     if estado_filtro:
         inscripciones = inscripciones.filter(estado=estado_filtro)
 
@@ -612,7 +803,7 @@ def gestion_inscripciones(request):
     # Cálculo de estadísticas generales (basado en toda la tabla sin filtros aplicados)
     total_inscripciones = Inscripcion.objects.count()
     total_pagados = Inscripcion.objects.filter(estado='Pagado').count()
-    total_canceladas = Inscripcion.objects.filter(estado='Cancelado').count()
+    total_canceladas = Inscripcion.objects.filter(estado='Cancelada').count()
 
     return render(request, 'inventario/inscripciones.html', {
         'inscripciones': inscripciones,
@@ -693,12 +884,32 @@ def editar_inscripcion(request, inscripcion_id):
     if request.method == 'POST':
         form = InscripcionForm(request.POST, instance=inscripcion)
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Inscripción actualizada correctamente.')
+            nuevo_estado = form.cleaned_data['estado']
+            
+            # 1. Actualizamos la inscripción mediante QuerySet.update() para evitar conflictos de ID en SQL Server
+            Inscripcion.objects.filter(pk=inscripcion_id).update(
+                estudiante=form.cleaned_data['estudiante'],
+                curso=form.cleaned_data['curso'],
+                instructor=form.cleaned_data['instructor'],
+                folio_inscripcion=form.cleaned_data['folio_inscripcion'],
+                estado=nuevo_estado,
+                total_pago=form.cleaned_data['total_pago']
+            )
+            
+            # 2. Sincronizamos automáticamente el estado en la tabla de Pagos relacionada
+            from inventario.models import Pago
+            Pago.objects.filter(inscripcion_id=inscripcion_id).update(
+                estado=nuevo_estado
+            )
+            
+            messages.success(request, 'Inscripción y su pago asociado actualizados correctamente.')
             return redirect('inventario:gestion_inscripciones')
     else:
         form = InscripcionForm(instance=inscripcion)
+        
     return render(request, 'inventario/editar_inscripcion.html', {'form': form, 'inscripcion': inscripcion})
+
+
 
 @login_required
 @role_required(allowed_roles=['Admin'])
@@ -706,8 +917,9 @@ def eliminar_inscripcion(request, inscripcion_id):
     inscripcion = get_object_or_404(Inscripcion, pk=inscripcion_id)
     if request.method == 'POST':
         inscripcion.delete()
-        messages.success(request, 'Inscripción eliminada.')
-    return redirect('inventario:gestion_inscripciones')
+        messages.success(request, 'Inscripción eliminada correctamente.')
+        return redirect('inventario:gestion_inscripciones')
+    return render(request, 'inventario/confirmar_eliminacion.html', {'objeto': inscripcion, 'tipo': 'inscripción'})
 
 
 # --- EVALUACIONES Y OTROS ---
@@ -721,23 +933,19 @@ def gestion_evaluaciones(request):
     cursos = []
     
     with connection.cursor() as cursor:
-        # 1. Abrir Master Key y Llave Simétrica para permitir el descifrado
-        cursor.execute("OPEN MASTER KEY DECRYPTION BY PASSWORD = 'MiPassword123*';")
-        cursor.execute("OPEN SYMMETRIC KEY ClaveDatos DECRYPTION BY CERTIFICATE CertificadoDatos;")
-        
         # Obtener lista de cursos para el menú desplegable del buscador
         cursor.execute("SELECT curso_id, nombre_curso FROM Cursos")
         cursos_cols = [col[0] for col in cursor.description]
         cursos = [dict(zip(cursos_cols, row)) for row in cursor.fetchall()]
         
-        # 2. Construir la consulta SQL con filtros dinámicos
+        # Construcción de la consulta SQL utilizando CAST a VARBINARY(MAX) para los comentarios cifrados
         sql = """
             SELECT 
                 ev.evaluacion_id,
                 CONCAT(au.first_name, ' ', au.last_name) AS estudiante,
                 c.nombre_curso,
                 ev.calificacion,
-                CAST(DecryptByKey(ev.comentarios) AS VARCHAR(MAX)) AS comentarios,
+                CAST(ev.comentarios AS VARBINARY(MAX)) AS comentarios,
                 ev.fecha_evaluacion
             FROM Evaluaciones ev
             INNER JOIN Inscripciones i ON ev.inscripcion_id = i.inscripcion_id
@@ -765,7 +973,14 @@ def gestion_evaluaciones(request):
             fila_dict = dict(zip(columns, row))
             
             for col_name, val in fila_dict.items():
-                if isinstance(val, bytes):
+                if col_name == 'comentarios':
+                    if isinstance(val, memoryview):
+                        val = str(val.tobytes())
+                    elif isinstance(val, bytes):
+                        val = str(val)
+                    else:
+                        val = str(val) if val is not None else "N/A"
+                elif isinstance(val, bytes):
                     try:
                         val = val.decode('utf-8', errors='ignore')
                     except Exception:
@@ -774,17 +989,12 @@ def gestion_evaluaciones(request):
                 
             evaluaciones.append(dict(zip(columns, cleaned_row)))
 
-        # 3. Cerrar la llave simétrica por seguridad
-        cursor.execute("CLOSE SYMMETRIC KEY ClaveDatos;")
-
     return render(request, 'inventario/evaluaciones.html', {
         'evaluaciones': evaluaciones,
         'cursos': cursos,
         'query': query,
         'curso_seleccionado': curso_id
     })
-
-
 @login_required
 @role_required(allowed_roles=['Admin'])
 def editar_evaluacion(request, pk):
@@ -826,64 +1036,749 @@ def editar_evaluacion(request, pk):
 
 @login_required
 @role_required(allowed_roles=['Admin'])
+def editar_evaluacion(request, pk):
+    with connection.cursor() as cursor:
+        # Abrir llave para poder leer y/o actualizar los comentarios cifrados
+        cursor.execute("OPEN MASTER KEY DECRYPTION BY PASSWORD = 'MiPassword123*';")
+        cursor.execute("OPEN SYMMETRIC KEY ClaveDatos DECRYPTION BY CERTIFICATE CertificadoDatos;")
+        
+        if request.method == 'POST':
+            calificacion = request.POST.get('calificacion')
+            comentarios = request.POST.get('comentarios', '').strip()
+            
+            if comentarios:
+                # Si el administrador escribió un nuevo comentario, lo ciframos y actualizamos ambos campos
+                cursor.execute("""
+                    UPDATE Evaluaciones 
+                    SET calificacion = %s, comentarios = EncryptByKey(Key_GUID('ClaveDatos'), CONVERT(VARCHAR(MAX), %s))
+                    WHERE evaluacion_id = %s
+                """, [calificacion, comentarios, int(pk)])
+            else:
+                # Si el campo se dejó vacío, actualizamos SOLO la calificación y dejamos intacto el comentario anterior
+                cursor.execute("""
+                    UPDATE Evaluaciones 
+                    SET calificacion = %s
+                    WHERE evaluacion_id = %s
+                """, [calificacion, int(pk)])
+            
+            cursor.execute("CLOSE SYMMETRIC KEY ClaveDatos;")
+            return redirect('inventario:gestion_evaluaciones')
+            
+        # Obtener los datos actuales de la evaluación descifrados exclusivamente para el formulario de edición
+        cursor.execute("""
+            SELECT evaluacion_id, calificacion, CAST(DecryptByKey(comentarios) AS VARCHAR(MAX)) AS comentarios 
+            FROM Evaluaciones WHERE evaluacion_id = %s
+        """, [int(pk)])
+        row = cursor.fetchone()
+        
+        cursor.execute("CLOSE SYMMETRIC KEY ClaveDatos;")
+        
+    evaluacion = {
+        'evaluacion_id': row[0],
+        'calificacion': row[1],
+        'comentarios': row[2] if row[2] is not None else ""
+    }
+    
+    return render(request, 'inventario/editar_evaluacion.html', {'evaluacion': evaluacion})
+@login_required
+@role_required(allowed_roles=['Admin'])
 def eliminar_evaluacion(request, pk):
     if request.method == 'POST':
         with connection.cursor() as cursor:
-            cursor.execute("OPEN MASTER KEY DECRYPTION BY PASSWORD = 'MiPassword123*';")
-            cursor.execute("OPEN SYMMETRIC KEY ClaveDatos DECRYPTION BY CERTIFICATE CertificadoDatos;")
-            
-            cursor.execute("DELETE FROM Evaluaciones WHERE evaluacion_id = %s", [pk])
-            
-            cursor.execute("CLOSE SYMMETRIC KEY ClaveDatos;")
+            try:
+                # Opcional pero recomendado si hay triggers o restricciones asociadas a campos cifrados
+                cursor.execute("OPEN MASTER KEY DECRYPTION BY PASSWORD = 'MiPassword123*';")
+                cursor.execute("OPEN SYMMETRIC KEY ClaveDatos DECRYPTION BY CERTIFICATE CertificadoDatos;")
+                
+                # Ejecutar la eliminación del registro
+                cursor.execute("DELETE FROM Evaluaciones WHERE evaluacion_id = %s", [int(pk)])
+            finally:
+                try:
+                    cursor.execute("CLOSE SYMMETRIC KEY ClaveDatos;")
+                except Exception:
+                    pass
+                    
         return redirect('inventario:gestion_evaluaciones')
         
     return render(request, 'inventario/confirmar_eliminacion.html', {'pk': pk})
 
+#Reportes---------------------------------
 
+def cifrar_valor(valor):
+    """Función auxiliar para cifrar datos sensibles antes de almacenarlos o procesarlos."""
+    if not valor:
+        return valor
+    try:
+        f = Fernet(settings.ENCRYPTION_KEY.encode() if isinstance(settings.ENCRYPTION_KEY, str) else settings.ENCRYPTION_KEY)
+        val_bytes = str(valor).encode('utf-8')
+        return f.encrypt(val_bytes).decode('utf-8')
+    except Exception:
+        return valor
 
 @login_required
 def reportes_view(request):
-    return render(request, 'inventario/reportes.html')
-#---------usuarios-----------------
+    tipo_reporte = request.GET.get('tipo_reporte', 'estudiantes')
+    fecha_inicio = request.GET.get('fecha_inicio', '2026-01-01')
+    fecha_fin = request.GET.get('fecha_fin', datetime.now().strftime('%Y-%m-%d'))
+    
+    resultados = []
+    columnas = []
+
+    # Variables iniciales para las gráficas de los 6 módulos
+    total_activos = 0
+    total_inactivos = 0
+    
+    cursos_labels = []
+    cursos_data = []
+    
+    instructores_labels = []
+    instructores_data = []
+    
+    inscripciones_labels = []
+    inscripciones_data = []
+    
+    eval_aprobadas = 0
+    eval_reprobadas = 0
+    
+    pagos_labels = []
+    pagos_data = []
+
+    with connection.cursor() as cursor:
+        
+        # 1. Gráfica Estudiantes (Activos vs Inactivos)
+        cursor.execute("""
+            SELECT 
+                SUM(CASE WHEN estado = 'Activo' THEN 1 ELSE 0 END),
+                SUM(CASE WHEN estado != 'Activo' THEN 1 ELSE 0 END)
+            FROM Estudiantes
+        """)
+        row_est = cursor.fetchone()
+        if row_est:
+            total_activos = row_est[0] or 0
+            total_inactivos = row_est[1] or 0
+
+        # 2. Gráfica Cursos (Más demandados)
+        cursor.execute("""
+            SELECT TOP 5 c.nombre_curso, COUNT(i.inscripcion_id) as total_inscritos
+            FROM Cursos c
+            LEFT JOIN Inscripciones i ON c.curso_id = i.curso_id
+            GROUP BY c.nombre_curso
+            ORDER BY total_inscritos DESC
+        """)
+        for rc in cursor.fetchall():
+            cursos_labels.append(rc[0])
+            cursos_data.append(rc[1])
+
+        # 3. Gráfica Instructores (Carga académica / Cursos asignados por instructor)
+        cursor.execute("""
+            SELECT TOP 5 ins.nombre_completo, COUNT(c.curso_id) as total_cursos
+            FROM Instructores ins
+            LEFT JOIN Cursos c ON ins.instructor_id = c.instructor_id
+            GROUP BY ins.nombre_completo
+            ORDER BY total_cursos DESC
+        """)
+        for ri in cursor.fetchall():
+            instructores_labels.append(ri[0])
+            instructores_data.append(ri[1])
+
+        # 4. Gráfica Inscripciones (Historial por fecha de inscripción)
+        cursor.execute("""
+            SELECT FORMAT(fecha_inscripcion, 'yyyy-MM'), COUNT(inscripcion_id)
+            FROM Inscripciones
+            GROUP BY FORMAT(fecha_inscripcion, 'yyyy-MM')
+            ORDER BY FORMAT(fecha_inscripcion, 'yyyy-MM')
+        """)
+        for rin in cursor.fetchall():
+            inscripciones_labels.append(rin[0] or 'Sin Fecha')
+            inscripciones_data.append(rin[1])
+
+        # 5. Gráfica Evaluaciones (Aprobados >= 70 vs Reprobados < 70)
+        cursor.execute("""
+            SELECT 
+                SUM(CASE WHEN calificacion >= 70 THEN 1 ELSE 0 END),
+                SUM(CASE WHEN calificacion < 70 THEN 1 ELSE 0 END)
+            FROM Evaluaciones
+        """)
+        row_ev = cursor.fetchone()
+        if row_ev:
+            eval_aprobadas = row_ev[0] or 0
+            eval_reprobadas = row_ev[1] or 0
+
+        # 6. Gráfica Pagos (Ingresos por fecha de pago)
+        cursor.execute("""
+            SELECT FORMAT(fecha_pago, 'yyyy-MM'), SUM(monto)
+            FROM Pagos
+            WHERE estado = 'PAGADO'
+            GROUP BY FORMAT(fecha_pago, 'yyyy-MM')
+            ORDER BY FORMAT(fecha_pago, 'yyyy-MM')
+        """)
+        for rp in cursor.fetchall():
+            pagos_labels.append(rp[0] or 'Sin Fecha')
+            pagos_data.append(float(rp[1]) if rp[1] else 0.0)
+
+        # Lógica existente para tus tablas de reportes
+        if tipo_reporte == 'estudiantes':
+            columnas = ['ID', 'Nombre Completo', 'Documento', 'Correo', 'Teléfono', 'Direccion', 'Fecha Registro', 'Estado']
+            cursor.execute("""
+                SELECT estudiante_id, nombre_completo, numero_documento, email, telefono, direccion, fecha_registro, estado 
+                FROM Estudiantes 
+                WHERE fecha_registro BETWEEN %s AND %s
+            """, [fecha_inicio, fecha_fin])
+            
+        elif tipo_reporte == 'cursos':
+            columnas = ['ID Curso', 'Nombre', 'Categoría', 'Duración (Horas)', 'Costo', 'Estado']
+            cursor.execute("""
+                SELECT curso_id, nombre_curso, categoria, duracion_horas, costo, estado 
+                FROM Cursos
+            """)
+
+        elif tipo_reporte == 'instructores':
+            columnas = ['ID', 'Nombre', 'Especialidad', 'Cédula Profesional', 'Correo', 'Teléfono', 'Dirección', 'Estado']
+            cursor.execute("""
+                SELECT instructor_id, nombre_completo, especialidad, cedula_profesional, email, telefono, direccion, estado 
+                FROM Instructores
+            """)
+            
+        elif tipo_reporte == 'inscripciones':
+            columnas = ['Inscripción', 'Estudiante', 'Curso', 'Instructor', 'Folio', 'Fecha', 'Estado', 'Total Pago']
+            cursor.execute("""
+                SELECT i.inscripcion_id, e.nombre_completo, c.nombre_curso, ins.nombre_completo, i.folio_inscripcion, i.fecha_inscripcion, i.estado, i.total_pago
+                FROM Inscripciones i
+                JOIN Estudiantes e ON i.estudiante_id = e.estudiante_id
+                JOIN Cursos c ON i.curso_id = c.curso_id
+                LEFT JOIN Instructores ins ON c.instructor_id = ins.instructor_id
+                WHERE i.fecha_inscripcion BETWEEN %s AND %s
+            """, [fecha_inicio, fecha_fin])
+
+        elif tipo_reporte == 'evaluaciones':
+            columnas = ['Evaluación ID', 'Estudiante', 'Curso', 'Calificación', 'Comentarios', 'Fecha Evaluación']
+            cursor.execute("""
+                SELECT ev.evaluacion_id, e.nombre_completo, c.nombre_curso, ev.calificacion, 
+                       CAST(ev.comentarios AS VARBINARY(MAX)), ev.fecha_evaluacion 
+                FROM Evaluaciones ev 
+                JOIN Inscripciones i ON ev.inscripcion_id = i.inscripcion_id
+                JOIN Estudiantes e ON i.estudiante_id = e.estudiante_id 
+                JOIN Cursos c ON i.curso_id = c.curso_id 
+                WHERE ev.fecha_evaluacion BETWEEN %s AND %s
+            """, [fecha_inicio, fecha_fin])
+            
+        elif tipo_reporte == 'pagos':
+            columnas = ['Pago ID', 'Estudiante', 'Curso', 'Fecha Pago', 'Monto', 'Referencia', 'Estado']
+            cursor.execute("""
+                SELECT p.pago_id, e.nombre_completo, c.nombre_curso, p.fecha_pago, p.monto, p.referencia_pago, p.estado
+                FROM Pagos p
+                JOIN Inscripciones i ON p.inscripcion_id = i.inscripcion_id
+                JOIN Estudiantes e ON i.estudiante_id = e.estudiante_id
+                JOIN Cursos c ON i.curso_id = c.curso_id
+                WHERE p.fecha_pago BETWEEN %s AND %s
+            """, [fecha_inicio, fecha_fin])
+
+        raw_resultados = cursor.fetchall()
+        
+        resultados = []
+        for fila in raw_resultados:
+            fila_lista = list(fila)
+            # Tus funciones de cifrado se mantienen intactas
+            resultados.append(tuple(fila_lista))
+
+    context = {
+        'tipo_reporte': tipo_reporte,
+        'fecha_inicio': fecha_inicio,
+        'fecha_fin': fecha_fin,
+        'columnas': columnas,
+        'resultados': resultados,
+        'nombres': ['Reporte de Estudiantes', 'Reporte de Cursos','Reporte de Instructores', 'Reporte de Inscripciones', 'Reporte de Evaluaciones', 'Reporte de Pagos'],
+        # Variables enviadas al template para las gráficas automáticas
+        'total_activos': total_activos,
+        'total_inactivos': total_inactivos,
+        'cursos_labels': cursos_labels,
+        'cursos_data': cursos_data,
+        'instructores_labels': instructores_labels,
+        'instructores_data': instructores_data,
+        'inscripciones_labels': inscripciones_labels,
+        'inscripciones_data': inscripciones_data,
+        'eval_aprobadas': eval_aprobadas,
+        'eval_reprobadas': eval_reprobadas,
+        'pagos_labels': pagos_labels,
+        'pagos_data': pagos_data,
+    }
+
+    return render(request, 'inventario/reportes.html', context)
 @login_required
-@role_required(allowed_roles=['Admin'])
+def generar_reporte_pdf(request):
+    tipo_reporte = request.GET.get('tipo', 'estudiantes')
+    fecha_inicio = request.GET.get('fecha_inicio', '2026-01-01')
+    fecha_fin = request.GET.get('fecha_fin', datetime.now().strftime('%Y-%m-%d'))
+    
+    resultados = []
+    columnas = []
+
+    with connection.cursor() as cursor:
+        if tipo_reporte == 'estudiantes':
+            columnas = ['ID', 'Nombre Completo', 'Documento (Cifrado)', 'Correo', 'Teléfono', 'Dirección', 'Fecha Registro', 'Estado']
+            cursor.execute("SELECT estudiante_id, nombre_completo, numero_documento, email, telefono, direccion, fecha_registro, estado FROM Estudiantes WHERE fecha_registro BETWEEN %s AND %s", [fecha_inicio, fecha_fin])
+        elif tipo_reporte == 'cursos':
+            columnas = ['ID Curso', 'Nombre', 'Categoría', 'Duración (Horas)', 'Costo', 'Estado']
+            cursor.execute("SELECT curso_id, nombre_curso, categoria, duracion_horas, costo, estado FROM Cursos")
+
+        elif tipo_reporte == 'instructores':
+            columnas = ['ID', 'Nombre', 'Especialidad', 'Cédula Prof. (Cifrada)', 'Correo', 'Teléfono', 'Dirección', 'Estado']
+            cursor.execute("SELECT instructor_id, nombre_completo, especialidad, cedula_profesional, email, telefono, direccion, estado FROM Instructores")  
+
+        elif tipo_reporte == 'inscripciones':
+            columnas = ['Inscripción', 'Estudiante', 'Curso', 'Instructor', 'Folio', 'Fecha', 'Estado', 'Total Pago']
+            cursor.execute("""
+                SELECT i.inscripcion_id, e.nombre_completo, c.nombre_curso, ins.nombre_completo, i.folio_inscripcion, i.fecha_inscripcion, i.estado, i.total_pago 
+                FROM Inscripciones i 
+                JOIN Estudiantes e ON i.estudiante_id = e.estudiante_id 
+                JOIN Cursos c ON i.curso_id = c.curso_id 
+                LEFT JOIN Instructores ins ON c.instructor_id = ins.instructor_id 
+                WHERE i.fecha_inscripcion BETWEEN %s AND %s
+            """, [fecha_inicio, fecha_fin])
+        elif tipo_reporte == 'evaluaciones':
+            columnas = ['Evaluación ID', 'Estudiante', 'Curso', 'Calificación', 'Comentarios (Cifrados)', 'Fecha Evaluación']
+            cursor.execute("""
+                SELECT ev.evaluacion_id, e.nombre_completo, c.nombre_curso, ev.calificacion, 
+                       CAST(ev.comentarios AS VARBINARY(MAX)), ev.fecha_evaluacion 
+                FROM Evaluaciones ev 
+                JOIN Inscripciones i ON ev.inscripcion_id = i.inscripcion_id
+                JOIN Estudiantes e ON i.estudiante_id = e.estudiante_id 
+                JOIN Cursos c ON i.curso_id = c.curso_id 
+                WHERE ev.fecha_evaluacion BETWEEN %s AND %s
+            """, [fecha_inicio, fecha_fin])
+        elif tipo_reporte == 'pagos':
+            columnas = ['Pago ID', 'Estudiante', 'Curso', 'Fecha Pago', 'Monto', 'Referencia', 'Estado']
+            cursor.execute("SELECT p.pago_id, e.nombre_completo, c.nombre_curso, p.fecha_pago, p.monto, p.referencia_pago, p.estado FROM Pagos p JOIN Inscripciones i ON p.inscripcion_id = i.inscripcion_id JOIN Estudiantes e ON i.estudiante_id = e.estudiante_id JOIN Cursos c ON i.curso_id = c.curso_id WHERE p.fecha_pago BETWEEN %s AND %s", [fecha_inicio, fecha_fin])
+
+        raw_resultados = cursor.fetchall()
+        
+        resultados = []
+        for fila in raw_resultados:
+            fila_lista = list(fila)
+            
+            # Función auxiliar interna para sanitizar y compactar valores cifrados (bytes o strings largos)
+            def compactar_cifrado(val):
+                if val is None:
+                    return ""
+                if isinstance(val, bytes):
+                    # Convertir bytes a Base64 legible y recortarlo para que quepa en la celda
+                    encoded = base64.b64encode(val).decode('utf-8')
+                else:
+                    encoded = str(val)
+                
+                # Si excede una longitud razonable para una celda de tabla, recortarlo de forma segura
+                if len(encoded) > 40:
+                    return encoded[:37] + "..."
+                return encoded
+
+            if tipo_reporte == 'estudiantes':
+                fila_lista[2] = compactar_cifrado(cifrar_valor(fila_lista[2]))
+            elif tipo_reporte == 'instructores':
+                fila_lista[3] = compactar_cifrado(cifrar_valor(fila_lista[3]))   
+            elif tipo_reporte == 'evaluaciones':
+                fila_lista[4] = compactar_cifrado(cifrar_valor(fila_lista[4]))
+            elif tipo_reporte == 'pagos':
+                fila_lista[5] = compactar_cifrado(cifrar_valor(fila_lista[5]))
+                
+            resultados.append(tuple(fila_lista))
+
+    reports_dir = os.path.join(settings.MEDIA_ROOT, 'reports')
+    os.makedirs(reports_dir, exist_ok=True)
+
+    filename = f"reporte_admin_{tipo_reporte}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+    file_path = os.path.join(reports_dir, filename)
+
+    doc = SimpleDocTemplate(
+        file_path,
+        pagesize=landscape(letter),
+        rightMargin=30, leftMargin=30,
+        topMargin=80, bottomMargin=40
+    )
+
+    styles = getSampleStyleSheet()
+    
+    style_header = ParagraphStyle(
+        'HeaderStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica-Bold',
+        fontSize=8,
+        textColor=colors.white,
+        alignment=1
+    )
+    
+    style_cell = ParagraphStyle(
+        'CellStyle',
+        parent=styles['Normal'],
+        fontName='Helvetica',
+        fontSize=7,
+        textColor=colors.HexColor("#1f2937")
+    )
+
+    style_cell_cifrado = ParagraphStyle(
+        'CellCifradoStyle',
+        parent=styles['Normal'],
+        fontName='Courier',
+        fontSize=6,
+        textColor=colors.HexColor("#374151")
+    )
+
+    elementos = []
+    header_row = [Paragraph(col, style_header) for col in columnas]
+    data_rows = [header_row]
+
+    for fila in resultados:
+        if tipo_reporte == 'estudiantes':
+            u_id, nombre, doc_cifrado, correo, tel, direccion, fecha, estado = fila
+            fila_cells = [
+                Paragraph(str(u_id) if u_id is not None else "", style_cell),
+                Paragraph(str(nombre) if nombre is not None else "", style_cell),
+                Paragraph(escape(str(doc_cifrado)), style_cell_cifrado),
+                Paragraph(str(correo) if correo is not None else "", style_cell),
+                Paragraph(str(tel) if tel is not None else "", style_cell),
+                Paragraph(str(direccion) if direccion is not None else "", style_cell),
+                Paragraph(str(fecha) if fecha is not None else "", style_cell),
+                Paragraph(str(estado) if estado is not None else "", style_cell),
+            ]
+        elif tipo_reporte == 'instructores':
+            u_id, nombre, especialidad, ced_cifrada, correo, tel, direccion, estado = fila
+            fila_cells = [
+                Paragraph(str(u_id) if u_id is not None else "", style_cell),
+                Paragraph(str(nombre) if nombre is not None else "", style_cell),
+                Paragraph(str(especialidad) if especialidad is not None else "", style_cell),
+                Paragraph(escape(str(ced_cifrada)), style_cell_cifrado),
+                Paragraph(str(correo) if correo is not None else "", style_cell),
+                Paragraph(str(tel) if tel is not None else "", style_cell),
+                Paragraph(str(direccion) if direccion is not None else "", style_cell),
+                Paragraph(str(estado) if estado is not None else "", style_cell),
+            ]
+        else:
+            fila_cells = []
+            for i, val in enumerate(fila):
+                val_str = str(val) if val is not None else ""
+                es_cifrado = (
+                    (tipo_reporte == 'inscripciones' and i == 4) or
+                    (tipo_reporte == 'evaluaciones' and i == 4) or
+                    (tipo_reporte == 'pagos' and i == 5)
+                )
+                estilo_usar = style_cell_cifrado if es_cifrado else style_cell
+                fila_cells.append(Paragraph(escape(val_str), estilo_usar))
+            
+        data_rows.append(fila_cells)
+        if tipo_reporte == 'estudiantes':
+          col_widths = [30, 95, 115, 135, 110, 65, 100, 52]
+        elif tipo_reporte == 'instructores':
+          col_widths = [30, 95, 115, 135, 110, 65, 100, 52]
+        elif tipo_reporte == 'evaluaciones':
+          col_widths = [50, 110, 110, 50, 190, 80]  # Ajusta el ancho de la columna 4 (comentarios) a 190
+        else:
+           col_widths = None
+    t = LongTable(data_rows, colWidths=col_widths, repeatRows=1)
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#312e81")),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('LEFTPADDING', (0, 0), (-1, -1), 4),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#d1d5db")),
+    ]))
+
+    elementos.append(t)
+
+    def header_footer(canvas_obj, document):
+        canvas_obj.saveState()
+        width_l, height_l = landscape(letter)
+        
+        canvas_obj.setFillColor(colors.HexColor("#312e81"))
+        canvas_obj.rect(0, height_l - 60, width_l, 60, fill=1, stroke=0)
+
+        canvas_obj.setFillColor(colors.white)
+        canvas_obj.setFont("Helvetica-Bold", 14)
+        canvas_obj.drawString(30, height_l - 25, f"SIPEL - REPORTE DE ADMIN ({tipo_reporte.upper()})")
+        canvas_obj.setFont("Helvetica", 8.5)
+        canvas_obj.drawString(30, height_l - 45, f"Rango de Fechas: {fecha_inicio} al {fecha_fin}")
+
+        canvas_obj.setStrokeColor(colors.HexColor("#d1d5db"))
+        canvas_obj.setLineWidth(1)
+        canvas_obj.line(30, 25, width_l - 30, 25)
+        
+        canvas_obj.setFont("Helvetica-Oblique", 7.5)
+        canvas_obj.setFillColor(colors.HexColor("#6b7280"))
+        canvas_obj.drawString(30, 15, "Documento generado automáticamente por el sistema SIPEL.")
+        canvas_obj.restoreState()
+
+    doc.build(elementos, onFirstPage=header_footer, onLaterPages=header_footer)
+
+    with open(file_path, 'rb') as pdf_file:
+        pdf_data = pdf_file.read()
+
+    return HttpResponse(
+        pdf_data,
+        content_type='application/pdf',
+        headers={'Content-Disposition': f'inline; filename="{filename}"'}
+    )
+@login_required
+def generar_reporte_excel(request):
+    tipo_reporte = request.GET.get('tipo', 'estudiantes')
+    fecha_inicio = request.GET.get('fecha_inicio', '2026-01-01')
+    fecha_fin = request.GET.get('fecha_fin', datetime.now().strftime('%Y-%m-%d'))
+    
+    resultados = []
+    columnas = []
+
+    with connection.cursor() as cursor:
+        if tipo_reporte == 'estudiantes':
+            columnas = ['ID', 'Nombre Completo', 'Documento (Cifrado)', 'Correo', 'Teléfono', 'Dirección', 'Fecha Registro', 'Estado']
+            cursor.execute("SELECT estudiante_id, nombre_completo, numero_documento, email, telefono, direccion, fecha_registro, estado FROM Estudiantes WHERE fecha_registro BETWEEN %s AND %s", [fecha_inicio, fecha_fin])
+        elif tipo_reporte == 'cursos':
+            columnas = ['ID Curso', 'Nombre', 'Categoría', 'Duración (Horas)', 'Costo', 'Estado']
+            cursor.execute("SELECT curso_id, nombre_curso, categoria, duracion_horas, costo, estado FROM Cursos")
+        elif tipo_reporte == 'instructores':
+            columnas = ['ID', 'Nombre', 'Especialidad', 'Cédula Prof. (Cifrada)', 'Correo', 'Teléfono', 'Dirección', 'Estado']
+            cursor.execute("SELECT instructor_id, nombre_completo, especialidad, cedula_profesional, email, telefono, direccion, estado FROM Instructores")
+        elif tipo_reporte == 'inscripciones':
+            columnas = ['Inscripción', 'Estudiante', 'Curso', 'Instructor', 'Folio', 'Fecha', 'Estado', 'Total Pago']
+            cursor.execute("""
+                SELECT i.inscripcion_id, e.nombre_completo, c.nombre_curso, ins.nombre_completo, i.folio_inscripcion, i.fecha_inscripcion, i.estado, i.total_pago 
+                FROM Inscripciones i 
+                JOIN Estudiantes e ON i.estudiante_id = e.estudiante_id 
+                JOIN Cursos c ON i.curso_id = c.curso_id 
+                LEFT JOIN Instructores ins ON c.instructor_id = ins.instructor_id 
+                WHERE i.fecha_inscripcion BETWEEN %s AND %s
+            """, [fecha_inicio, fecha_fin])
+        elif tipo_reporte == 'evaluaciones':
+            columnas = ['Evaluación ID', 'Estudiante', 'Curso', 'Calificación', 'Comentarios (Cifrados)', 'Fecha Evaluación']
+            cursor.execute("""
+                SELECT ev.evaluacion_id, e.nombre_completo, c.nombre_curso, ev.calificacion, 
+                       CAST(ev.comentarios AS VARBINARY(MAX)), ev.fecha_evaluacion 
+                FROM Evaluaciones ev 
+                JOIN Inscripciones i ON ev.inscripcion_id = i.inscripcion_id
+                JOIN Estudiantes e ON i.estudiante_id = e.estudiante_id 
+                JOIN Cursos c ON i.curso_id = c.curso_id 
+                WHERE ev.fecha_evaluacion BETWEEN %s AND %s
+            """, [fecha_inicio, fecha_fin])
+        elif tipo_reporte == 'pagos':
+            columnas = ['Pago ID', 'Estudiante', 'Curso', 'Fecha Pago', 'Monto', 'Referencia', 'Estado']
+            cursor.execute("SELECT p.pago_id, e.nombre_completo, c.nombre_curso, p.fecha_pago, p.monto, p.referencia_pago, p.estado FROM Pagos p JOIN Inscripciones i ON p.inscripcion_id = i.inscripcion_id JOIN Estudiantes e ON i.estudiante_id = e.estudiante_id JOIN Cursos c ON i.curso_id = c.curso_id WHERE p.fecha_pago BETWEEN %s AND %s", [fecha_inicio, fecha_fin])
+
+        raw_resultados = cursor.fetchall()
+        
+        resultados = []
+        for fila in raw_resultados:
+            fila_lista = list(fila)
+            
+            # Función auxiliar interna idéntica a la del PDF para compactar valores binarios/cifrados
+            def compactar_cifrado(val):
+                if val is None:
+                    return ""
+                if isinstance(val, bytes):
+                    encoded = base64.b64encode(val).decode('utf-8')
+                else:
+                    encoded = str(val)
+                
+                if len(encoded) > 40:
+                    return encoded[:37] + "..."
+                return encoded
+
+            if tipo_reporte == 'estudiantes':
+                fila_lista[2] = compactar_cifrado(cifrar_valor(fila_lista[2]))
+            elif tipo_reporte == 'instructores':
+                fila_lista[3] = compactar_cifrado(cifrar_valor(fila_lista[3]))
+            elif tipo_reporte == 'evaluaciones':
+                fila_lista[4] = compactar_cifrado(cifrar_valor(fila_lista[4]))
+            elif tipo_reporte == 'pagos':
+                fila_lista[5] = compactar_cifrado(cifrar_valor(fila_lista[5]))
+                
+            resultados.append(tuple(fila_lista))
+
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = tipo_reporte.capitalize()
+
+    ws.views.sheetView[0].showGridLines = True
+
+    header_fill = PatternFill(start_color="312E81", end_color="312E81", fill_type="solid")
+    header_font = Font(name="Helvetica", size=10, bold=True, color="FFFFFF")
+    cell_font = Font(name="Helvetica", size=9, color="1F2937")
+    cifrado_font = Font(name="Courier New", size=8, color="374151")
+   
+    align_center = Alignment(horizontal="center", vertical="center")
+    align_left = Alignment(horizontal="left", vertical="top", wrap_text=True)
+   
+    thin_border = Border(
+        left=Side(style='thin', color='D1D5DB'),
+        right=Side(style='thin', color='D1D5DB'),
+        top=Side(style='thin', color='D1D5DB'),
+        bottom=Side(style='thin', color='D1D5DB')
+    )
+
+    max_col_letter = get_column_letter(len(columnas))
+
+    # Título principal adaptado al número de columnas
+    ws.append([f"SIPEL - REPORTE DE ADMIN ({tipo_reporte.upper()})"])
+    ws.merge_cells(f"A1:{max_col_letter}1")
+    cell_title = ws["A1"]
+    cell_title.font = Font(name="Helvetica", size=14, bold=True, color="FFFFFF")
+    cell_title.fill = header_fill
+    cell_title.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    ws.row_dimensions[1].height = 30
+
+    # Subtítulo de rango de fechas
+    ws.append([f"Rango de Fechas: {fecha_inicio} al {fecha_fin}"])
+    ws.merge_cells(f"A2:{max_col_letter}2")
+    cell_sub = ws["A2"]
+    cell_sub.font = Font(name="Helvetica", size=9, italic=True, color="374151")
+    cell_sub.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    ws.row_dimensions[2].height = 20
+
+    ws.append([])
+    ws.row_dimensions[3].height = 10
+
+    # Cabeceras de tabla
+    ws.append(columnas)
+    ws.row_dimensions[4].height = 25
+    for col_num in range(1, len(columnas) + 1):
+        cell = ws.cell(row=4, column=col_num)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = align_center
+        cell.border = thin_border
+
+    row_idx = 5
+    for fila in resultados:
+        valores_str = [str(val) if val is not None else "" for val in fila]
+        ws.append(valores_str)
+        
+        ws.row_dimensions[row_idx].height = 30
+        
+        for col_num in range(1, len(valores_str) + 1):
+            cell = ws.cell(row=row_idx, column=col_num)
+            cell.border = thin_border
+            
+            # Identificar columna cifrada de forma general según el tipo de reporte
+            es_cifrado = (
+                (tipo_reporte == 'estudiantes' and col_num == 3) or
+                (tipo_reporte == 'instructores' and col_num == 4) or
+                (tipo_reporte == 'evaluaciones' and col_num == 5) or
+                (tipo_reporte == 'pagos' and col_num == 6)
+            )
+
+            if es_cifrado:
+                cell.font = cifrado_font
+                cell.alignment = align_left
+            elif col_num == 1:
+                cell.font = cell_font
+                cell.alignment = align_center
+            else:
+                cell.font = cell_font
+                cell.alignment = align_left
+                
+        row_idx += 1
+
+    # Anchos de columna personalizados
+    if tipo_reporte in ['estudiantes', 'instructores']:
+        ws.column_dimensions['A'].width = 8   # ID
+        ws.column_dimensions['B'].width = 25  # Nombre Completo
+        ws.column_dimensions['C'].width = 35  # Documento cifrado recortado
+        ws.column_dimensions['D'].width = 25  # Correo
+        ws.column_dimensions['E'].width = 15  # Teléfono
+        ws.column_dimensions['F'].width = 30  # Dirección
+        ws.column_dimensions['G'].width = 20  # Fecha Registro
+        ws.column_dimensions['H'].width = 15  # Estado
+    else:
+        for col in ws.columns:
+            max_length = max(len(str(cell.value or '')) for cell in col)
+            col_letter = get_column_letter(col[0].column)
+            ws.column_dimensions[col_letter].width = max(max_length + 4, 15)
+
+    reports_dir = os.path.join(settings.MEDIA_ROOT, 'reports')
+    os.makedirs(reports_dir, exist_ok=True)
+
+    filename = f"reporte_admin_{tipo_reporte}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    file_path = os.path.join(reports_dir, filename)
+
+    wb.save(file_path)
+
+    with open(file_path, 'rb') as excel_file:
+        excel_data = excel_file.read()
+
+    return HttpResponse(
+        excel_data,
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers={'Content-Disposition': f'attachment; filename="{filename}"'}
+    )
+#---------usuarios-----------------
 def gestion_usuarios(request):
     usuarios = User.objects.all().order_by('id')
-    
-    # Capturar filtros de la URL
-    query = request.GET.get('q')
-    estado = request.GET.get('estado')
-    
-    if query:
+
+    # Filtro por texto (búsqueda de usuario o nombre)
+    q = request.GET.get('q')
+    if q:
         usuarios = usuarios.filter(
-            Q(username__icontains=query) | 
-            Q(first_name__icontains=query) | 
-            Q(last_name__icontains=query) |
-            Q(email__icontains=query)
+            Q(username__icontains=q) | 
+            Q(first_name__icontains=q) | 
+            Q(last_name__icontains=q)
         )
-        
+
+    # Filtro por estado (activo/inactivo)
+    estado = request.GET.get('estado')
     if estado == 'activo':
         usuarios = usuarios.filter(is_active=True)
     elif estado == 'inactivo':
         usuarios = usuarios.filter(is_active=False)
-        
-    return render(request, 'admin_sistema/usuarios.html', {'usuarios': usuarios})
-def crear_usuario(request):
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Usuario creado correctamente')
-            return redirect('inventario:gestion_usuarios')
-    else:
-        form = UserCreationForm()
-    return render(request, 'inventario/usuario_form.html', {'form': form})
 
+    # Capturar el rol seleccionado por los botones (Por defecto 'Administrador')
+    rol_seleccionado = request.GET.get('rol', 'Administrador')
+
+    # Filtrar la lista general según el botón activo
+    usuarios_filtrados = usuarios.filter(groups__name=rol_seleccionado)
+
+    contexto = {
+        'usuarios': usuarios_filtrados,
+        'rol_seleccionado': rol_seleccionado,
+    }
+    return render(request, 'admin_sistema/usuarios.html', contexto)
 def editar_usuario(request, usuario_id):
     usuario = get_object_or_404(User, pk=usuario_id)
+    rol_actual = usuario.groups.first().name if usuario.groups.exists() else "Sin rol"
+
     if request.method == 'POST':
-        return redirect('inventario:gestion_usuarios')
-    return render(request, 'inventario/usuario_form.html', {'form': None, 'usuario': usuario})
+        form = UsuarioForm(request.POST, instance=usuario)
+        nueva_contrasena = request.POST.get('password', '').strip()
+
+        if form.is_valid():
+            usuario_actualizado = form.save(commit=False)
+            
+            if nueva_contrasena:
+                usuario_actualizado.set_password(nueva_contrasena)
+            
+            usuario_actualizado.save()
+            
+            # Sincronización automática de nombres de usuario
+            if hasattr(usuario_actualizado, 'estudiante'):
+                estudiante = usuario_actualizado.estudiante
+                estudiante.usuario = usuario_actualizado.username
+                estudiante.save()
+            elif hasattr(usuario_actualizado, 'instructor'):
+                instructor = usuario_actualizado.instructor
+                instructor.usuario = usuario_actualizado.username
+                instructor.save()
+
+            messages.success(request, 'Credenciales de usuario actualizadas correctamente.')
+            return redirect('inventario:gestion_usuarios')
+    else:
+        form = UsuarioForm(instance=usuario)
+        
+    context = {
+        'form': form, 
+        'usuario': usuario,
+        'rol_actual': rol_actual
+    }
+    return render(request, 'inventario/editar_usuario.html', context)
 
 def eliminar_usuario(request, usuario_id):
     usuario = get_object_or_404(User, pk=usuario_id)
@@ -891,33 +1786,8 @@ def eliminar_usuario(request, usuario_id):
         usuario.delete()
         messages.success(request, 'Usuario eliminado correctamente')
         return redirect('inventario:gestion_usuarios')
-    return render(request, 'inventario/confirmar_eliminar.html', {'usuario': usuario})
-
-@login_required
-def cambiar_contrasena_usuario(request, user_id):
-    usuario_obj = get_object_or_404(User, pk=user_id)
-    
-    if request.method == 'POST':
-        form = CambiarContrasenaAdminForm(user=usuario_obj, data=request.POST)
-        if form.is_valid():
-            user = form.save()
-            
-            if request.user.pk == user.pk:
-                update_session_auth_hash(request, user)
-                
-            messages.success(request, "¡Contraseña actualizada correctamente!")
-            return redirect('inventario:gestion_usuarios') 
-    else:
-        form = CambiarContrasenaAdminForm(user=usuario_obj)
         
-    context = {
-        'form': form,
-        'usuario': usuario_obj,
-        'titulo': f"Cambiar Contraseña de {usuario_obj.username}"
-    }
-    
-    return render(request, 'inventario/form.html', context)
-
+    return render(request, 'inventario/eliminar_usuario.html', {'usuario': usuario})
 def custom_logout_view(request):
     logout(request)
     return redirect('core:index')
@@ -987,10 +1857,37 @@ def registros_instructor(request):
         'total_inscripciones': total_inscripciones,
     }
     return render(request, 'inventario/registros_instructor.html', context)
-# --- VISTA PRINCIPAL REGISTROS ---
+# --- VISTA PRINCIPAL REGISTROS de ADMIN ---
 @login_required
 def home_registros(request):
-   return render(request, 'inventario/registros.html')
+    # Contar los registros reales de la base de datos
+    total_estudiantes = Estudiante.objects.count()
+    total_cursos = Curso.objects.count()
+    total_instructores = Instructor.objects.count()
+    total_inscripciones = Inscripcion.objects.count()
+
+    # Obtener los últimos registros agregados usando las llaves primarias reales de SQL
+    ultimas_inscripciones = Inscripcion.objects.order_by('-inscripcion_id')[:3]
+    
+    # Corregido: Usar 'curso_id' en lugar de 'id' ya que esa es la llave primaria de Curso
+    ultimos_cursos = Curso.objects.order_by('-curso_id')[:3] 
+    
+    # Basado en la estructura de instructores, su llave primaria es 'instructor_id'
+    ultimos_instructores = Instructor.objects.order_by('-instructor_id')[:3]
+
+    context = {
+        'total_estudiantes': total_estudiantes,
+        'total_cursos': total_cursos,
+        'total_instructores': total_instructores,
+        'total_inscripciones': total_inscripciones,
+        
+        # Listas recientes para el HTML
+        'ultimas_inscripciones': ultimas_inscripciones,
+        'ultimos_cursos': ultimos_cursos,
+        'ultimos_instructores': ultimos_instructores,
+    }
+    
+    return render(request, 'inventario/registros.html', context)
 # --- VISTAS PARA INSTRUCTOR ---
 @login_required
 @role_required(allowed_roles=['Instructor'])
@@ -1360,28 +2257,29 @@ def mis_pagos(request):
                 except Exception:
                     referencia_limpia = "Error al procesar referencia"
 
+            # Limpiamos espacios en blanco sobrantes devueltos por SQL Server
+            estado_limpio = data['estado'].strip() if data['estado'] else ''
+
             pagos.append({
                 'pago_id': data['pago_id'],
                 'curso': data['nombre_curso'],
                 'fecha': data['fecha_pago'],
                 'monto': data['monto'],
-                'estado': data['estado'],
+                'estado': estado_limpio,
                 'referencia': referencia_limpia
             })
             
         cursor.execute("CLOSE SYMMETRIC KEY ClaveDatos;")
 
     return render(request, 'inventario/mis_pagos.html', {'pagos': pagos})
-
 @login_required
 @role_required(['Estudiante'])
 def descargar_comprobante_pdf(request, pago_id):
-    # 1. Obtener los datos del pago abriendo las llaves de seguridad requeridas por SQL Server
+    # 1. Obtener los datos del pago (¡Sin descifrar, para que traiga los bytes cifrados!)
     with connection.cursor() as cursor:
         try:
-            cursor.execute("OPEN MASTER KEY DECRYPTION BY PASSWORD = 'MiPassword123*';")
-            cursor.execute("OPEN SYMMETRIC KEY ClaveDatos DECRYPTION BY CERTIFICATE CertificadoDatos;")
-            
+            # Ya no es estrictamente necesario abrir la Master Key ni Symmetric Key 
+            # a menos que requieras consultar otros campos cifrados.
             cursor.execute("""
                 SELECT 
                     p.pago_id,
@@ -1389,7 +2287,7 @@ def descargar_comprobante_pdf(request, pago_id):
                     p.fecha_pago,
                     p.monto,
                     p.estado,
-                    CAST(DecryptByKey(p.referencia_pago) AS VARCHAR(MAX)) AS referencia_pago
+                    p.referencia_pago
                 FROM Pagos p
                 INNER JOIN Inscripciones i ON p.inscripcion_id = i.inscripcion_id
                 INNER JOIN Cursos c ON i.curso_id = c.curso_id
@@ -1398,37 +2296,34 @@ def descargar_comprobante_pdf(request, pago_id):
             """, [request.user.id, pago_id])
             row = cursor.fetchone()
         finally:
-            try:
-                cursor.execute("CLOSE SYMMETRIC KEY ClaveDatos;")
-            except Exception:
-                pass
+            pass
 
     if not row:
         raise Http404("El comprobante no existe o no tienes permisos para verlo.")
 
-    # Procesamiento seguro de la referencia descifrada por SQL
+    # Procesar los bytes cifrados de la referencia tal como se hizo con la cédula
     ref_raw = row[5]
-    referencia_limpia = "N/A"
+    referencia_cifrada = "N/A"
     
     if ref_raw:
         try:
             if isinstance(ref_raw, memoryview):
-                referencia_limpia = ref_raw.tobytes().decode('utf-8')
+                referencia_cifrada = str(ref_raw.tobytes())
             elif isinstance(ref_raw, bytes):
-                referencia_limpia = ref_raw.decode('utf-8')
+                referencia_cifrada = str(ref_raw)
             else:
-                referencia_limpia = str(ref_raw)
+                referencia_cifrada = str(ref_raw)
         except Exception:
-            referencia_limpia = "Error al procesar referencia"
+            referencia_cifrada = "Error al procesar referencia"
 
-    # Mapear los datos de la consulta incluyendo la referencia limpia
+    # Mapear los datos de la consulta incluyendo la referencia cifrada
     pago_data = {
         'pago_id': row[0],
         'curso': row[1],
         'fecha': row[2],
         'monto': row[3],
         'estado': row[4],
-        'referencia': referencia_limpia,
+        'referencia': referencia_cifrada,
     }
 
     # 2. Definir la ruta de la carpeta media\reports
@@ -1436,7 +2331,7 @@ def descargar_comprobante_pdf(request, pago_id):
     os.makedirs(reports_dir, exist_ok=True)  # Crear la carpeta si no existe
 
     # Nombre del archivo PDF basado en el ID del pago
-    filename = f"comprobante_pago_{pago_data['pago_id']}.pdf"
+    filename = f"comprobante_pago_estudiante_{pago_data['pago_id']}.pdf"
     file_path = os.path.join(reports_dir, filename)
 
     # 3. Generar el PDF utilizando ReportLab
@@ -1473,7 +2368,9 @@ def descargar_comprobante_pdf(request, pago_id):
     for label, value in detalles:
         c.setFont("Helvetica-Bold", 11)
         c.drawString(50, y_position, label)
-        c.setFont("Helvetica", 11)
+        
+        # Ajustamos el tamaño de fuente o usamos wrap si la cadena cifrada es muy larga en el PDF
+        c.setFont("Helvetica", 9) # Fuente un poco más pequeña para que quepa el hash/cifrado
         c.drawString(200, y_position, str(value))
         y_position -= space
 

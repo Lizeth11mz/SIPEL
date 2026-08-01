@@ -42,19 +42,20 @@ urlpatterns = [
 
     # --- GESTIÓN GENERAL ---
     path('pagos/', views.gestion_pagos, name='gestion_pagos'),
-    
+    path('pagos/pdf/<int:pago_id>/', views.admin_descargar_comprobante_pdf, name='admin_descargar_comprobante_pdf'),
     # --- REPORTES Y EVALUACIONES ---
     path('evaluaciones/', views.gestion_evaluaciones, name='gestion_evaluaciones'),
     path('evaluaciones/editar/<int:pk>/', views.editar_evaluacion, name='editar_evaluacion'),
-path('evaluaciones/eliminar/<int:pk>/', views.eliminar_evaluacion, name='eliminar_evaluacion'),
+    path('evaluaciones/eliminar/<int:pk>/', views.eliminar_evaluacion, name='eliminar_evaluacion'),
     path('reportes/', views.reportes_view, name='reportes'),
-    
+    # Rutas para que los botones de exportar PDF y Excel funcionen en la plantilla
+    path('admin/reportes/pdf/', views.generar_reporte_pdf, name='generar_reporte_pdf'),
+    path('admin/reportes/excel/', views.generar_reporte_excel, name='generar_reporte_excel'),
+
     # --- GESTIÓN USUARIOS ---
     path('usuarios/', views.gestion_usuarios, name='gestion_usuarios'),
-    path('usuarios/crear/', views.crear_usuario, name='crear_usuario'),
     path('usuarios/editar/<int:usuario_id>/', views.editar_usuario, name='editar_usuario'),
     path('usuarios/eliminar/<int:usuario_id>/', views.eliminar_usuario, name='eliminar_usuario'),
-    path('usuarios/cambiar-contrasena/<int:user_id>/', views.cambiar_contrasena_usuario, name='cambiar_contrasena_usuario'),
     # --- LOGOUT ---
     path('logout/', views.custom_logout_view, name='logout'),
 
@@ -62,7 +63,7 @@ path('evaluaciones/eliminar/<int:pk>/', views.eliminar_evaluacion, name='elimina
     #--------------path('estudiante/cmaterias,pagos,incripciones -----
     path('estudiante/mis_materias/', views.mis_materias,name='mis_materias'),
     path('estudiante/inscripciones/', views.mis_inscripciones, name='mis_inscripciones'),
-   path('estudiante/inscribirme/', views.inscribir_curso, name='inscribir_curso'),
+    path('estudiante/inscribirme/', views.inscribir_curso, name='inscribir_curso'),
     path('estudiante/evaluaciones/', views.mis_evaluaciones, name='mis_evaluaciones'),
     path('estudiante/pagos/', views.mis_pagos, name='mis_pagos'),
     path('estudiante/pagos/descargar/<int:pago_id>/', views.descargar_comprobante_pdf, name='descargar_comprobante_pdf'),

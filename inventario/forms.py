@@ -8,7 +8,6 @@ ESTADO_CHOICES = [
     ('Activo', 'Activo'),
     ('Inactivo', 'Inactivo'),
     ('Cancelado', 'Cancelado'),
-    ('Pendiente', 'Pendiente'),
     ('Pagado', 'Pagado'),
     ('Finalizado', 'Finalizado'),
 ]
@@ -16,22 +15,25 @@ ESTADO_CHOICES = [
 # --- FORMULARIOS ---
 
 class UsuarioForm(forms.ModelForm):
+    # Campo de contraseña opcional para cuando se quiera cambiar
+    password = forms.CharField(
+        required=False, 
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control', 
+            'placeholder': 'Dejar en blanco para mantener la actual',
+            'style': 'width: 100%; padding: 10px 15px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; background-color: #f8fafc; box-sizing: border-box;'
+        })
+    )
+
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'is_active']
+        fields = ['username', 'password']  # <--- Únicamente usuario y contraseña permitidos
         widgets = {
-            'username': forms.TextInput(attrs={'class': 'form-control'}),
-            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'username': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'style': 'width: 100%; padding: 10px 15px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; background-color: #f8fafc; box-sizing: border-box;'
+            }),
         }
-
-class CambiarContrasenaAdminForm(PasswordChangeForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for field_name, field in self.fields.items():
-            field.widget.attrs.update({'class': 'form-control'})
 
 class EstudianteForm(forms.ModelForm):
     estado = forms.ChoiceField(
@@ -209,10 +211,11 @@ class InstructorForm(forms.ModelForm):
         if commit:
             instructor.save()
         return instructor
-
-
 class InscripcionForm(forms.ModelForm):
-    estado = forms.ChoiceField(choices=ESTADO_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+    estado = forms.ChoiceField(
+        choices=Inscripcion.ESTADOS_INSCRIPCION, 
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
     
     class Meta:
         model = Inscripcion
@@ -224,6 +227,14 @@ class InscripcionForm(forms.ModelForm):
             'folio_inscripcion': forms.TextInput(attrs={'class': 'form-control'}),
             'total_pago': forms.NumberInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Usamos directamente los choices del modelo para evitar desajustes
+        self.fields['estado'].choices = Inscripcion.ESTADOS_INSCRIPCION
+        self.fields['estudiante'].queryset = Estudiante.objects.all()
+        self.fields['curso'].queryset = Curso.objects.all()
+        self.fields['instructor'].queryset = Instructor.objects.all()
 
 
 class EvaluacionForm(forms.ModelForm):

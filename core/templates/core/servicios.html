@@ -1,0 +1,89 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servicios | SIPEL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *{ margin:0; padding:0; box-sizing:border-box; }
+        body{ font-family:'Poppins',sans-serif; background:#f4f7fb; color:#333; }
+        header{ position:relative; background:linear-gradient(135deg,#003b8e,#0066cc); color:white; padding:80px 20px; text-align:center; }
+        header img{ margin-bottom:20px; }
+        header h1{ font-size:60px; font-weight:800; }
+        header p{ margin-top:20px; font-size:22px; max-width:800px; margin-left:auto; margin-right:auto; opacity: 0.9; }
+        .btn-home{ position:absolute; top:30px; left:30px; text-decoration:none; background:white; color:#003b8e; padding:12px 25px; border-radius:10px; font-weight:600; transition:.3s; box-shadow:0 5px 15px rgba(0,0,0,.20); }
+        .btn-home:hover{ background:#004fa3; color:white; transform:translateY(-3px); }
+        
+        .container{ width:90%; max-width:1100px; margin:50px auto; }
+        
+        .services-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:25px; margin-bottom:40px; }
+        .card{ background:white; border-radius:20px; padding:35px; box-shadow:0 10px 25px rgba(0,0,0,.08); text-align:left; transition: transform .3s; }
+        .card:hover{ transform: translateY(-5px); }
+        .card h3{ color:#003b8e; font-size:24px; margin-bottom:15px; font-weight:700; }
+        .card p{ font-size:16px; line-height:1.7; color:#555; }
+        
+        .security-card{ background:white; border-radius:20px; padding:40px; box-shadow:0 10px 25px rgba(0,0,0,.08); }
+        .security-card h2{ color:#003b8e; font-size:28px; margin-bottom:15px; }
+        .security-card p{ font-size:17px; line-height:1.7; color:#555; margin-bottom:20px; }
+        .security-card ul{ list-style-position: inside; color:#555; font-size:16px; line-height:1.8; }
+        .security-card li{ margin-bottom:10px; }
+        .security-card strong{ color:#003b8e; }
+
+        footer{ background:#032c67; color:white; text-align:center; padding:20px; margin-top:50px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <a href="{% url 'core:index' %}" class="btn-home">
+        ← Volver al Inicio
+    </a>
+
+    <img src="{% static 'img/logo.png' %}" width="120" alt="SIPEL">
+    <h1>Nuestros Servicios</h1>
+    <p>
+        Sistema Integral para una Plataforma de Educación en Línea (SIPEL), diseñado para optimizar la gestión académica, administrativa y educativa en una sola solución tecnológica[cite: 1].
+    </p>
+</header>
+
+<div class="container">
+    <div class="services-grid">
+        <!-- Gestión Académica -->
+        <div class="card">
+            <h3>Gestión Académica</h3>
+            <p>Administración completa de estudiantes, instructores y una amplia variedad de cursos organizados por categorías (Programación, Diseño, etc.)[cite: 1].</p>
+        </div>
+
+        <!-- Inscripciones y Evaluaciones -->
+        <div class="card">
+            <h3>Inscripciones y Evaluaciones</h3>
+            <p>Control de procesos de inscripción con validación de cupos, seguimiento detallado del progreso y registro de calificaciones con comentarios seguros[cite: 1].</p>
+        </div>
+
+        <!-- Pagos y Transacciones -->
+        <div class="card">
+            <h3>Pagos y Transacciones</h3>
+            <p>Módulo transaccional avanzado para el control de pagos, emisión de detalles por conceptos (inscripciones, certificados) y trazabilidad completa[cite: 1].</p>
+        </div>
+    </div>
+
+    <!-- Sección de Seguridad y Características Técnicas -->
+    <div class="security-card">
+        <h2>Compromiso con la Seguridad y Eficiencia</h2>
+        <p>Nuestra plataforma está respaldada por una robusta arquitectura orientada a la administración avanzada de bases de datos:</p>
+        <ul>
+            <li><strong>Cifrado de Datos Sensibles:</strong> Protección estricta de documentos de identidad, cédulas profesionales, contraseñas, comentarios y referencias de pago mediante claves simétricas[cite: 1].</li>
+            <li><strong>Auditoría y Trazabilidad:</strong> Registro automático de cambios y operaciones críticas en inscripciones, evaluaciones y pagos[cite: 1].</li>
+            <li><strong>Disponibilidad y Rendimiento:</strong> Uso de índices optimizados, procedimientos almacenados y transacciones seguras (COMMIT/ROLLBACK) para garantizar la integridad operativa[cite: 1].</li>
+        </ul>
+    </div>
+</div>
+
+<footer>
+    <p>© 2026 SIPEL | Sistema Integral para una Plataforma de Educación en Línea</p>
+</footer>
+
+</body>
+</html>

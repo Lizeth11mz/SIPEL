@@ -1,81 +1,41 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}Editar Estudiante{% endblock %}
+{% block title %}Eliminar Usuario{% endblock %}
 
 {% block content %}
-<div style="max-width: 800px; margin: 0 auto; padding: 20px;">
-    <h1 style="color: white; margin-bottom: 20px;">✏️ EDITAR ESTUDIANTE</h1>
-
-    <form method="POST" style="background: #161b22; padding: 30px; border-radius: 12px; border: 1px solid #30363d; color: white;">
-        {% csrf_token %}
+<div style="padding: 40px 20px; display: flex; justify-content: center; align-items: center; min-height: 70vh;">
+    <div style="max-width: 500px; width: 100%; padding: 30px; background-color: #1e293b; color: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; font-family: system-ui, -apple-system, sans-serif; border: 1px solid #334155;">
         
-        <div style="display: flex; flex-direction: column; gap: 15px;">
+        <div style="font-size: 40px; margin-bottom: 10px;">⚠️</div>
+        
+        <h2 style="color: #f87171; margin-top: 0; font-size: 24px; font-weight: 700;">¿Confirmar eliminación?</h2>
+        
+        <p style="color: #cbd5e1; font-size: 15px; margin-bottom: 15px;">
+            Estás a punto de eliminar al usuario del sistema:
+        </p>
+        
+        <div style="font-size: 1.25em; font-weight: 600; background-color: #0f172a; border: 1px solid #334155; padding: 12px; border-radius: 8px; margin-bottom: 15px; color: #f8fafc; word-break: break-all;">
+            {{ usuario.username }}
+        </div>
+        
+        <p style="font-size: 13px; color: #94a3b8; margin-bottom: 25px;">
+            Esta acción eliminará sus credenciales de acceso permanentemente y no se puede deshacer.
+        </p>
+        
+        <form method="POST">
+            {% csrf_token %}
             
-            <!-- 1. ID DEL ESTUDIANTE (Bloqueado) -->
-            <div class="form-group">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold;">ID Estudiante</label>
-                <input type="text" value="{{ form.instance.pk }}" disabled style="width: 100%; padding: 8px; background-color: #21262d; border: 1px solid #30363d; color: #8b949e; border-radius: 6px; cursor: not-allowed;">
-                <input type="hidden" name="estudiante_id" value="{{ form.instance.pk }}">
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button type="submit" style="padding: 10px 22px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; cursor: pointer; border: none; background-color: #ef4444; color: white; font-size: 14px; transition: opacity 0.2s;">
+                    Sí, eliminar
+                </button>
+                
+                <a href="{% url 'inventario:gestion_usuarios' %}" style="padding: 10px 22px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; cursor: pointer; border: none; background-color: #64748b; color: white; font-size: 14px; transition: opacity 0.2s;">
+                    Cancelar
+                </a>
             </div>
-
-            <!-- 2. NOMBRE COMPLETO -->
-            <div class="form-group">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Nombre Completo</label>
-                {{ form.nombre_completo }}
-                {{ form.nombre_completo.errors }}
-            </div>
-
-            <!-- 3. CORREO -->
-            <div class="form-group">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Correo (Email)</label>
-                {{ form.email }}
-                {{ form.email.errors }}
-            </div>
-
-            <!-- 4. TELÉFONO -->
-            <div class="form-group">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Teléfono</label>
-                {{ form.telefono }}
-                {{ form.telefono.errors }}
-            </div>
-
-            <!-- 5. TIPO DE DOCUMENTO (Desplegable) -->
-            <div class="form-group">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Tipo de Documento</label>
-                {{ form.tipo_documento }}
-                {{ form.tipo_documento.errors }}
-            </div>
-
-            <!-- 6. DOCUMENTO (Número de documento opcional y limpio) -->
-            <div class="form-group">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Documento</label>
-                <input type="text" name="numero_documento" value="" placeholder="Escriba el número de documento nuevo (opcional)..." style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; border-radius: 6px;">
-                {{ form.numero_documento.errors }}
-            </div>
-
-            <!-- 7. ESTADO -->
-            <div class="form-group">
-                <label style="display: block; margin-bottom: 5px; font-weight: bold;">Estado</label>
-                <select name="estado" style="width: 100%; padding: 8px; background-color: #1a252f; border: 1px solid #34495e; color: white; border-radius: 6px;">
-                    <option value="Activo" {% if form.instance.estado == 'Activo' %}selected{% endif %}>Activo</option>
-                    <option value="Inactivo" {% if form.instance.estado == 'Inactivo' %}selected{% endif %}>Inactivo</option>
-                </select>
-                {{ form.estado.errors }}
-            </div>
-
-            <!-- Campos ocultos de Usuario y Contraseña para mantener la lógica interna sin alterarse visualmente -->
-            <input type="hidden" name="usuario" value="{{ form.instance.usuario }}">
-
-        </div>
-
-        <!-- Botones -->
-        <div style="margin-top: 25px; display: flex; gap: 10px; align-items: center;">
-            <button type="submit" style="background-color: #238636; border: none; padding: 12px 24px; color: white; cursor: pointer; border-radius: 8px; font-weight: bold;">
-                Guardar Cambios
-            </button>
-            <a href="{% url 'inventario:gestion_estudiantes' %}" style="color: #8b949e; text-decoration: none; padding: 10px;">Cancelar</a>
-        </div>
-    </form>
+        </form>
+    </div>
 </div>
 {% endblock %}

@@ -39,9 +39,16 @@
                         <td class="p-5 text-gray-500 font-medium">{{ pago.fecha|date:"d/m/Y H:i" }}</td>
                         <td class="p-5 font-bold text-gray-900 text-base">${{ pago.monto }}</td>
                         <td class="p-5">
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                {{ pago.estado|title }}
-                            </span>
+                            <!-- AQUÍ SE APLICA EL CAMBIO CONDICIONAL DE COLOR FORZADO -->
+                            {% if 'cancel' in pago.estado|lower %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-red-100 text-red-800 border border-red-300">
+                                    {{ pago.estado|title }}
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    {{ pago.estado|title }}
+                                </span>
+                            {% endif %}
                         </td>
                         <td class="p-5 text-center">
                             <a href="{% url 'inventario:descargar_comprobante_pdf' pago.pago_id %}" target="_blank" 

@@ -17,9 +17,26 @@
     .table-card { background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e1e4e8; }
     table { width: 100%; border-collapse: collapse; margin-top: 10px; color: #000; }
     th { color: #007bff; text-align: left; padding: 15px; border-bottom: 2px solid #f0f4f8; }
-    td { padding: 15px; border-bottom: 1px solid #f0f4f8; color: #000; }
+    td { padding: 15px; border-bottom: 1px solid #f0f4f8; color: #000; vertical-align: middle; }
     .btn-action { padding: 8px 12px; border-radius: 4px; border: 1px solid #ddd; cursor: pointer; background: #fff; text-decoration: none; display: inline-block; }
     .btn-action:hover { background: #f0f0f0; }
+
+    /* ESTILO CORREGIDO: SIN BARRA DESLIZANTE Y ALINEADO A LA IZQUIERDA */
+    .document-preview-box {
+        background-color: #f8f9fa;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 8px 10px;
+        max-width: 280px;
+        max-height: 80px;
+        overflow: hidden; /* Elimina completamente la barra deslizante */
+        text-align: left; /* Asegura la alineación a la izquierda */
+        font-family: monospace;
+        font-size: 11px;
+        color: #374151;
+        word-break: break-all;
+        white-space: pre-wrap;
+    }
 </style>
 
 <div class="page-container">
@@ -33,9 +50,18 @@
         {% endif %}
     </div>
 
+    <!-- TARJETAS ESTADÍSTICAS CORREGIDAS -->
     <div class="stats-container">
-        <div class="stat-card"><div class="icon-box">📋</div><div><small style="color: #666;">Total</small><br><strong style="color: #000;">{{ evaluaciones|length }}</strong></div></div>
-        <div class="stat-card"><div class="icon-box">✅</div><div><small style="color: #666;">Registradas</small><br><strong style="color: #000;">{{ evaluaciones|length }}</strong></div></div>
+        <!-- Tarjeta 1: Total general -->
+        <div class="stat-card">
+            <div class="icon-box">📋</div>
+            <div><small style="color: #666;">Total</small><br><strong style="color: #000;">{{ total_evaluaciones|default:evaluaciones|length }}</strong></div>
+        </div>
+        <!-- Tarjeta 2: Registradas -->
+        <div class="stat-card">
+            <div class="icon-box">✅</div>
+            <div><small style="color: #666;">Aprobadas</small><br><strong style="color: #000;">{{ evaluaciones|length }}</strong></div>
+        </div>
     </div>
 
     <form method="GET" action="{% url 'inventario:gestion_evaluaciones' %}" class="search-section">
@@ -78,7 +104,11 @@
                     <td>{{ eval.nombre_curso }}</td>
                     <td>{{ eval.calificacion }}</td>
                     <td>{{ eval.fecha_evaluacion }}</td>
-                    <td>{{ eval.comentarios|default:"N/A" }}</td>
+                    
+                    <!-- COMENTARIOS ENCAPSULADOS SIN ESPACIOS IZQUIERDOS NI BARRA -->
+                    <td>
+                        <div class="document-preview-box">{{ eval.comentarios|default:"N/A" }}</div>
+                    </td>
                     
                     <td>
                         <a href="{% url 'inventario:editar_evaluacion' eval.evaluacion_id %}" class="btn-action" title="Editar">✏️</a>

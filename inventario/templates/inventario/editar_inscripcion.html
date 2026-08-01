@@ -16,37 +16,65 @@
 </style>
 
 <div class="edit-container">
-    <h2 style="margin-top: 0;">✎ Editar Inscripción ID: {{ inscripcion.id }}</h2>
+    <h2 style="margin-top: 0;">✎ Editar Inscripción ID: {{ inscripcion.pk }}</h2>
     <p style="color: #8b949e;">Modifica los campos para actualizar la inscripción.</p>
 
     <form method="POST">
         {% csrf_token %}
         
         <div class="form-group">
-            <!-- Renderizamos solo los campos que NO son curso ni total_pago -->
-            {% for field in form %}
-                {% if field.name != 'curso' and field.name != 'total_pago' %}
-                    <p>{{ field.label_tag }} {{ field }}</p>
-                {% endif %}
-            {% endfor %}
-
-            <!-- Campo Curso manual -->
+            <!-- 1. Estudiante -->
             <p>
-                <label for="select-curso">Curso:</label>
-                <select id="select-curso" name="curso" required>
-                    <option value="">Seleccione un curso...</option>
-                    {% for curso in cursos %}
-                        <option value="{{ curso.id }}" data-costo="{{ curso.costo }}" {% if inscripcion.curso.id == curso.id %}selected{% endif %}>
-                            {{ curso.nombre_curso }}
-                        </option>
-                    {% endfor %}
-                </select>
+                {{ form.estudiante.label_tag }} 
+                {{ form.estudiante }}
+                {% if form.estudiante.errors %}
+                    <span style="color: #f85149; font-size: 12px; margin-top: 4px;">{{ form.estudiante.errors.0 }}</span>
+                {% endif %}
             </p>
 
-            <!-- Campo Total único (nombre name="total_pago" para coincidir con tu modelo) -->
+            <!-- 2. Instructor -->
             <p>
-                <label for="input-total">Total a Pagar:</label>
-                <input type="number" id="input-total" name="total_pago" step="0.01" value="{{ inscripcion.total_pago }}" readonly required>
+                {{ form.instructor.label_tag }} 
+                {{ form.instructor }}
+                {% if form.instructor.errors %}
+                    <span style="color: #f85149; font-size: 12px; margin-top: 4px;">{{ form.instructor.errors.0 }}</span>
+                {% endif %}
+            </p>
+
+            <!-- 3. Folio inscripcion -->
+            <p>
+                {{ form.folio_inscripcion.label_tag }} 
+                {{ form.folio_inscripcion }}
+                {% if form.folio_inscripcion.errors %}
+                    <span style="color: #f85149; font-size: 12px; margin-top: 4px;">{{ form.folio_inscripcion.errors.0 }}</span>
+                {% endif %}
+            </p>
+
+            <!-- 4. Estado -->
+            <p>
+                {{ form.estado.label_tag }} 
+                {{ form.estado }}
+                {% if form.estado.errors %}
+                    <span style="color: #f85149; font-size: 12px; margin-top: 4px;">{{ form.estado.errors.0 }}</span>
+                {% endif %}
+            </p>
+
+            <!-- 5. Curso (Ahora mostrará los nombres correctamente gracias al __str__) -->
+            <p>
+                {{ form.curso.label_tag }} 
+                {{ form.curso }}
+                {% if form.curso.errors %}
+                    <span style="color: #f85149; font-size: 12px; margin-top: 4px;">{{ form.curso.errors.0 }}</span>
+                {% endif %}
+            </p>
+
+            <!-- 6. Total pago -->
+            <p>
+                {{ form.total_pago.label_tag }} 
+                {{ form.total_pago }}
+                {% if form.total_pago.errors %}
+                    <span style="color: #f85149; font-size: 12px; margin-top: 4px;">{{ form.total_pago.errors.0 }}</span>
+                {% endif %}
             </p>
         </div>
 
@@ -54,18 +82,4 @@
         <a href="{% url 'inventario:gestion_inscripciones' %}" class="btn-cancel">Cancelar</a>
     </form>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const selectCurso = document.getElementById('select-curso');
-    const inputTotal = document.getElementById('input-total');
-
-    selectCurso.addEventListener('change', function() {
-        const opcion = this.options[this.selectedIndex];
-        const costo = opcion.getAttribute('data-costo');
-        // Si no hay costo (opción vacía), pone 0.00
-        inputTotal.value = costo ? costo : '0.00';
-    });
-});
-</script>
 {% endblock %}

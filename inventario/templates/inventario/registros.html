@@ -1,119 +1,309 @@
 {% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}REGISTROS{% endblock %}
+{% block title %}PANEL DE CONTROL - ADMINISTRADOR{% endblock %}
 
 {% block content %}
 <style>
-    .tab-buttons button {
-        padding: 15px 30px; 
-        font-size: 18px;
-        background-color: #2c3e50;
-        color: white;
-        border: none;
-        cursor: pointer;
-        margin-right: 10px;
-        font-weight: bold;
-    }
-    .tab-buttons button.active {
-        background-color: #f39c12;
-    }
-
-    /* Contenedor principal del filtro y botones */
-    .filter-wrapper {
-        display: flex;
-        justify-content: space-between; /* Empuja botones a la derecha */
-        align-items: flex-end;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-        gap: 20px;
-    }
-
-    .filter-group {
+    /* Estilos generales del Panel del Administrador con fondo blanco */
+    .admin-dashboard {
+        padding: 20px;
+        color: #333;
+        font-family: Arial, sans-serif;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        min-height: calc(100vh - 100px);
+        box-sizing: border-box;
+        background-color: #ffffff;
     }
 
-    /* Ampliación de la barra de búsqueda */
-    .search-bar-group {
+    /* Banner de Bienvenida */
+    .welcome-banner {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 30px;
         display: flex;
-        gap: 10px;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
     }
-    .search-bar-group input[type="text"] {
-        padding: 15px; 
-        font-size: 16px;
-        width: 500px; /* Barra más amplia */
+    .welcome-left {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+    .welcome-avatar {
+        width: 80px;
+        height: 80px;
+        background-color: #2c3e50;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+    }
+    .welcome-text h1 {
+        margin: 0 0 10px 0;
+        font-size: 24px;
+        color: #1a252f;
+    }
+    .welcome-text p {
+        margin: 0;
+        color: #555;
+        font-size: 15px;
+    }
+    .welcome-graphic {
+        font-size: 60px;
     }
 
-    .btn-search, .btn-secondary {
-        padding: 15px 25px;
-        font-size: 16px;
-        cursor: pointer;
-        border: none;
+    /* Contenedor general en rectángulo para las Estadísticas del Sistema */
+    .stats-container-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 12px 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
-    .btn-search { background-color: #104274; color: white; }
-    .btn-secondary { background-color: #e0e0e0; color: #333; }
+
+    /* Títulos de sección */
+    .section-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 15px;
+    }
+    .stat-card {
+        background: #fdfdfd;
+        border: 1px solid #e8e8e8;
+        border-radius: 8px;
+        padding: 12px 15px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .stat-icon {
+        font-size: 22px;
+        margin-bottom: 5px;
+    }
+    .stat-number {
+        font-size: 22px;
+        font-weight: bold;
+        color: #104274;
+        margin-bottom: 2px;
+    }
+    .stat-label {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 6px;
+    }
+    .stat-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        font-size: 11px;
+        font-weight: bold;
+        border-radius: 10px;
+        background-color: #e8f8f5;
+        color: #27ae60;
+    }
+
+    /* Tarjeta de Actividad Reciente */
+    .activity-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 25px 20px;
+        margin-top: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .activity-header {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 12px;
+        margin-bottom: 15px;
+    }
+    .activity-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #f9f9f9;
+        font-size: 14px;
+    }
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+    .activity-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .activity-time {
+        color: #888;
+        font-size: 13px;
+    }
+
+    /* Información del Sistema */
+    .system-info-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 15px;
+        margin-bottom: 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .system-info-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        margin-top: 10px;
+    }
+    .system-info-item span {
+        display: block;
+        font-size: 13px;
+        color: #777;
+    }
+    .system-info-item strong {
+        font-size: 15px;
+        color: #333;
+        display: flex;
+        align-items: center;
+    }
+    .status-dot {
+        height: 10px;
+        width: 10px;
+        background-color: #27ae60;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 6px;
+        flex-shrink: 0;
+    }
 </style>
 
-<h1 class="header-title" style="background-color: orange; padding: 10px; display: inline-block; color: white;">REGISTROS</h1>
+<div class="admin-dashboard">
 
-<div class="tab-buttons" style="margin: 20px 0;">
-    <button id="btn-estudiantes" onclick="showTab('view-estudiantes')" class="active">👤 ESTUDIANTES</button>
-    <button id="btn-cursos" onclick="showTab('view-cursos')">📖 CURSOS</button>
-    <button id="btn-instructores" onclick="showTab('view-instructores')">👤 INSTRUCTORES</button>
-</div>
-
-<!-- Filtros y botones alineados -->
-<form method="GET" class="filter-wrapper">
-    <!-- Lado Izquierdo: Filtros -->
-    <div class="filter-group">
-        <div>
-            <span style="font-weight: bold; font-size: 16px; margin-right: 15px;">Filtro por:</span>
-            <label style="font-size: 16px; margin-right: 10px;"><input type="radio" name="filtro" value="nombre" checked> Nombre</label>
-            <label style="font-size: 16px;"><input type="radio" name="filtro" value="estado"> Estado</label>
+    <!-- Banner de Bienvenida -->
+    <div class="welcome-banner">
+        <div class="welcome-left">
+            <div class="welcome-avatar">👨‍💼</div>
+            <div class="welcome-text">
+                <h1>¡Bienvenido al Panel de Control, {{ request.user.first_name }} {{ request.user.last_name }}!</h1>
+                <p>Como administrador, tienes el control total del sistema, gestión de usuarios y monitoreo general de la plataforma.</p>
+            </div>
         </div>
-        <div class="search-bar-group">
-            <input type="text" name="busqueda" placeholder="Buscar...">
-            <button type="submit" class="btn-search">Buscar</button>
+        <div class="welcome-graphic">📊</div>
+    </div>
+
+    <!-- Resumen de Estadísticas del Sistema -->
+    <div class="stats-container-card">
+        <div class="section-title" style="margin-bottom: 8px; font-size: 16px;">📈 Resumen de Estadísticas del Sistema</div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">🎓</div>
+                <div class="stat-number">{{ total_estudiantes|default:"0" }}</div>
+                <div class="stat-label">Estudiantes Registrados</div>
+                <div class="stat-badge">Activos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📖</div>
+                <div class="stat-number">{{ total_cursos|default:"0" }}</div>
+                <div class="stat-label">Cursos Disponibles</div>
+                <div class="stat-badge">Activos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">👤</div>
+                <div class="stat-number">{{ total_instructores|default:"0" }}</div>
+                <div class="stat-label">Instructores Registrados</div>
+                <div class="stat-badge">Activos</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">👥</div>
+                <div class="stat-number">{{ total_inscripciones|default:"0" }}</div>
+                <div class="stat-label">Inscripciones Totales</div>
+                <div class="stat-badge" style="background-color: #ebf5fb; color: #2980b9;">Este mes</div>
+            </div>
         </div>
     </div>
 
-    <!-- Lado Derecho: Botones de Acción -->
-    <div class="action-buttons">
-        <button type="button" class="btn-secondary">Nuevo</button>
-        <button type="button" class="btn-secondary">🔄 Actualizar</button>
-        <button type="button" class="btn-secondary">⬇️ Exportar</button>
+    <!-- Actividad Reciente de la Plataforma -->
+    <div class="activity-card">
+        <div class="activity-header">
+            <div class="section-title" style="margin: 0; justify-content: center;">🕒 Actividad Reciente de la Plataforma</div>
+        </div>
+        
+        <!-- Mostrar últimas inscripciones -->
+        {% for inscripcion in ultimas_inscripciones %}
+        <div class="activity-item">
+            <div class="activity-info">
+                <span>🟢</span>
+                <span>Nueva inscripción: <strong>{{ inscripcion.estudiante }}</strong> en {{ inscripcion.curso }}.</span>
+            </div>
+            <span class="activity-time">Reciente</span>
+        </div>
+        {% empty %}
+        {% endfor %}
+
+        <!-- Mostrar últimos cursos -->
+        {% for curso in ultimos_cursos %}
+        <div class="activity-item">
+            <div class="activity-info">
+                <span>📖</span>
+                <span>Nuevo curso agregado: <strong>{{ curso.nombre_curso }}</strong>.</span>
+            </div>
+            <span class="activity-time">Reciente</span>
+        </div>
+        {% empty %}
+        {% endfor %}
+
+        <!-- Mostrar últimos instructores -->
+        {% for instructor in ultimos_instructores %}
+        <div class="activity-item">
+            <div class="activity-info">
+                <span>👤</span>
+                <span>Nuevo instructor registrado: <strong>{{ instructor.nombre_completo }}</strong>.</span>
+            </div>
+            <span class="activity-time">Reciente</span>
+        </div>
+        {% empty %}
+        {% endfor %}
     </div>
-</form>
 
-<div id="view-estudiantes" class="data-view">
-    <h2 style="margin-top: 20px;">LISTA DE ESTUDIANTES</h2>
-    <table class="data-table">
-        <thead>
-            <tr><th>ID</th><th>Nombre</th><th>Correo</th><th>Teléfono</th><th>Estado</th><th>Fecha Registro</th></tr>
-        </thead>
-        <tbody>
-            {% for e in estudiantes %}
-            <tr>
-                <td>{{ e.id }}</td>
-                <td>{{ e.nombre }}</td>
-                <td>{{ e.correo }}</td>
-                <td>{{ e.telefono }}</td>
-                <td><span class="{% if e.activo %}status-active{% else %}status-inactive{% endif %}">{% if e.activo %}Activo{% else %}Inactivo{% endif %}</span></td>
-                <td>{{ e.fecha_registro|date:"d/m/Y" }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <!-- Información del Sistema -->
+    <div class="system-info-card">
+        <div class="section-title" style="margin-bottom: 10px;">💻 Información del Sistema</div>
+        <div class="system-info-grid">
+            <div class="system-info-item">
+                <span>Versión del Sistema</span>
+                <strong>SIPEL v2.5.0</strong>
+            </div>
+            <div class="system-info-item">
+                <span>Servidor</span>
+                <strong>Servidor Principal</strong>
+            </div>
+            <div class="system-info-item">
+                <span>Base de Datos</span>
+                <strong>Educacion</strong>
+            </div>
+            <div class="system-info-item">
+                <span>Estado del Sistema</span>
+                <strong><span class="status-dot"></span>Óptimo</strong>
+            </div>
+        </div>
+    </div>
+
 </div>
-
-<script>
-    function showTab(tabId) {
-        document.querySelectorAll('.data-view').forEach(v => v.style.display = 'none');
-        document.getElementById(tabId).style.display = 'block';
-        document.querySelectorAll('.tab-buttons button').forEach(b => b.classList.remove('active'));
-        document.getElementById('btn-' + tabId.split('-')[1]).classList.add('active');
-    }
-</script>
 {% endblock %}

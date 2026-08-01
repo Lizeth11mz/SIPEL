@@ -8,7 +8,7 @@ from django.contrib.auth.models import Group
 # --- Definición de opciones comunes ---
 ESTADO_CHOICES = [
     ('Activo', 'Activo'), ('Inactivo', 'Inactivo'), ('Cancelado', 'Cancelado'),
-    ('Pendiente', 'Pendiente'), ('Pagado', 'Pagado'), ('Finalizado', 'Finalizado'),
+     ('Pagado', 'Pagado'), ('Finalizado', 'Finalizado'),
     ('Activa', 'Activa')
 ]
 
@@ -147,6 +147,9 @@ class Curso(models.Model):
         # Resta el cupo máximo menos los inscritos reales
         return self.cupo_maximo - inscritos_count
 
+    def __str__(self):
+        return self.nombre_curso
+
     class Meta:
         managed = True
         db_table = 'Cursos'
@@ -156,7 +159,7 @@ class Inscripcion(models.Model):
         ('Cancelada', 'Cancelada'),
     ]
     
-    inscripcion_id = models.AutoField(primary_key=True)
+    inscripcion_id = models.AutoField(primary_key=True, db_column='inscripcion_id')
     estudiante = models.ForeignKey(Estudiante, on_delete=models.DO_NOTHING, db_column='estudiante_id')
     curso = models.ForeignKey(Curso, on_delete=models.DO_NOTHING, db_column='curso_id')
     instructor = models.ForeignKey(Instructor, on_delete=models.DO_NOTHING, db_column='instructor_id')
@@ -171,7 +174,7 @@ class Inscripcion(models.Model):
 
     def __str__(self):
         return f"Inscripción #{self.pk} - {self.estudiante} ({self.curso})"
-
+    
 class Evaluacion(models.Model):
     evaluacion_id = models.AutoField(primary_key=True)
     inscripcion = models.ForeignKey(Inscripcion, on_delete=models.DO_NOTHING, db_column='inscripcion_id')

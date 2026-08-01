@@ -21,7 +21,7 @@
 {% if messages %}
     <div style="margin-bottom: 20px;">
         {% for message in messages %}
-            <div style="padding: 14px 20px; border-radius: 8px; color: white; font-weight: 500; display: flex; align-items: center; justify-content: space-between;
+            <div class="alerta-temporal" style="padding: 14px 20px; border-radius: 8px; color: white; font-weight: 500; display: flex; align-items: center; justify-content: space-between; transition: opacity 0.5s ease;
                 {% if message.tags == 'error' %}background-color: #3a1a1a; border: 1px solid #ff6b6b;
                 {% elif message.tags == 'success' %}background-color: #1a3a2a; border: 1px solid #3fb950;
                 {% else %}background-color: #1f6feb; border: 1px solid #388bfd;{% endif %}">
@@ -113,7 +113,8 @@
                 <td style="padding: 15px; word-break: break-word;">{{ curso.curso_id }}</td>
                 <td style="padding: 15px; word-break: break-word;">{{ curso.nombre_curso }}</td>
                 <td style="padding: 15px; word-break: break-word;">{{ curso.categoria }}</td>
-                <td style="padding: 15px; word-break: break-word;">{{ curso.instructor_id }}</td>
+                <!-- AQUÍ SE CAMBIÓ instructor_id por instructor.nombre_completo -->
+                <td style="padding: 15px; word-break: break-word;">{{ curso.instructor.nombre_completo }}</td>
                 <td style="padding: 15px; word-break: break-word;">{{ curso.duracion_horas }}h</td>
                 <td style="padding: 15px; word-break: break-word;">${{ curso.costo }}</td>
                 <td style="padding: 15px; word-break: break-word;">{{ curso.cupo_maximo }}</td>
@@ -175,5 +176,16 @@
             }
         });
     }
+
+    // Ocultar automáticamente las alertas después de 4 segundos con animación suave
+    document.addEventListener("DOMContentLoaded", function() {
+        setTimeout(function() {
+            const alertas = document.querySelectorAll('.alerta-temporal');
+            alertas.forEach(alerta => {
+                alerta.style.opacity = '0';
+                setTimeout(() => alerta.remove(), 500); // Se remueve del DOM
+            });
+        }, 4000); // 4000ms = 4 segundos
+    });
 </script>
 {% endblock %}

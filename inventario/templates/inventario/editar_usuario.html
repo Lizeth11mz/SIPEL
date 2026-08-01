@@ -1,0 +1,63 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Editar Usuario{% endblock %}
+
+{% block content %}
+<div class="usuarios-container" style="padding: 20px 30px; width: 100%; box-sizing: border-box; max-width: 800px; margin: 0 auto;">
+
+    <!-- Tarjeta de Cabecera -->
+    <div style="background-color: white; padding: 20px 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 20px;">
+        <div style="background-color: #fff7ed; padding: 12px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <span style="font-size: 28px;">🔑</span>
+        </div>
+        <div>
+            <h1 style="margin: 0 0 4px 0; font-size: 22px; color: #1e293b; font-weight: 700;">EDITAR CREDENCIALES DE USUARIO</h1>
+            <p style="margin: 0; color: #64748b; font-size: 14px;">Modifica el nombre de usuario o actualiza su contraseña de acceso</p>
+        </div>
+    </div>
+
+    <!-- Contenedor del Formulario -->
+    <div style="background-color: white; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); width: 100%; box-sizing: border-box;">
+        
+        {% if rol_actual %}
+        <div style="margin-bottom: 20px; padding: 10px 15px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between;">
+            <span style="color: #64748b; font-size: 14px; font-weight: 600;">Rol del Sistema:</span>
+            <span style="background-color: #ffedd5; color: #c2410c; padding: 4px 12px; border-radius: 6px; font-size: 13px; font-weight: 700;">{{ rol_actual }}</span>
+        </div>
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <!-- Renderizado personalizado y limpio de los campos -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                {% for field in form %}
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label style="font-size: 14px; font-weight: 600; color: #334155;" for="{{ field.id_for_label }}">
+                            {{ field.label }}
+                        </label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <small style="color: #64748b; font-size: 12px;">{{ field.help_text }}</small>
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <span style="color: #dc2626; font-size: 12px; font-weight: 600;">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Botones de Acción -->
+            <div style="margin-top: 30px; display: flex; gap: 12px; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+                <button type="submit" style="background-color: #f97316; color: white; padding: 10px 24px; font-size: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 2px 4px rgba(249,115,22,0.3); transition: background 0.2s;">
+                    Guardar Cambios
+                </button>
+                <a href="{% url 'inventario:gestion_usuarios' %}" style="background-color: #f1f5f9; color: #475569; padding: 10px 20px; font-size: 14px; border-radius: 8px; text-decoration: none; font-weight: 600; border: 1px solid #cbd5e1; transition: background 0.2s;">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

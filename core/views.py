@@ -73,27 +73,4 @@ def home_registros(request):
 
 def custom_logout_view(request):
     logout(request)
-    return redirect("core:index")
-
-def crear_usuario(request):
-    if request.method == 'POST':
-        form = UsuarioForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('inventario:gestion_usuarios')
-    else:
-        form = UsuarioForm()
-    
-    return render(request, 'inventario/usuario_form.html', {'form': form})
-
-def editar_usuario_CORRECTO(request, usuario_id):
-    usuario = get_object_or_404(User, pk=usuario_id)
-    form = UsuarioForm(instance=usuario)
-    return render(request, 'inventario/usuario_form.html', {'form': form, 'usuario': usuario})
-
-def eliminar_usuario(request, usuario_id):
-    usuario = get_object_or_404(User, pk=usuario_id)
-    if request.method == 'POST':
-        usuario.delete()
-        return redirect('inventario:gestion_usuarios')
-    return render(request, 'inventario/usuario_confirm_delete.html', {'usuario': usuario})
+    return redirect('core:index')

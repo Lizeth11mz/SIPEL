@@ -17,7 +17,8 @@
     .table-container { background: #161b22; border-radius: 12px; border: 1px solid #30363d; padding: 20px; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; color: #e6edf3; }
     th { color: #8b949e; border-bottom: 2px solid #30363d; padding: 15px; text-align: left; }
-    td { padding: 15px; border-bottom: 1px solid #30363d; vertical-align: middle; }
+    
+    td { padding: 15px; border-bottom: 1px solid #30363d; vertical-align: middle; text-align: left; }
 
     .document-preview-box {
         background: #0d1117;
@@ -27,8 +28,11 @@
         font-size: 0.75em;
         color: #8b949e;
         overflow-wrap: anywhere;
-        white-space: pre-wrap;
+        white-space: pre-line;
         text-align: left;
+        margin: 0;
+        width: 100%;
+        box-sizing: border-box;
     }
 </style>
 
@@ -40,24 +44,6 @@
         </div>
         <button type="button" class="btn-new" onclick="openNewInstructorModal()">+ Nuevo Instructor</button>
     </div>
-
-    <!-- Bloque de Mensajes de Notificación (Éxito / Error) -->
-    {% if messages %}
-        <div style="margin-bottom: 20px;">
-            {% for message in messages %}
-                <div style="padding: 14px 20px; border-radius: 8px; color: white; font-weight: 500; display: flex; align-items: center; justify-content: space-between;
-                    {% if message.tags == 'error' %}background-color: #3a1a1a; border: 1px solid #ff6b6b;
-                    {% elif message.tags == 'success' %}background-color: #1a3a2a; border: 1px solid #3fb950;
-                    {% else %}background-color: #1f6feb; border: 1px solid #388bfd;{% endif %}">
-                    <span>
-                        {% if message.tags == 'success' %}✅ {% elif message.tags == 'error' %}⚠️ {% endif %}
-                        {{ message }}
-                    </span>
-                    <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: white; font-size: 16px; cursor: pointer; line-height: 1;">&times;</button>
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
 
     <!-- Estadísticas -->
    <div class="stats-container">
@@ -109,7 +95,7 @@
                     <td>{{ instructor.instructor_id }}</td>
                     <td>{{ instructor.nombre_completo }}</td>
                     <td>{{ instructor.especialidad }}</td>
-                    <td style="min-width: 250px;">
+                    <td style="min-width: 250px; text-align: left;">
                         <div style="font-size: 0.85em; font-weight: bold; color: #8b949e; margin-bottom: 4px; text-align: left;">Cédula</div>
                         <div class="document-preview-box">
                             {{ instructor.cedula_profesional|default:"N/A" }}
@@ -126,17 +112,14 @@
                         </span>
                     </td>
                     <td>
-                        <div style="display: flex; gap: 5px; align-items: center;">
-                            <!-- Botón Editar -->
-                            <a href="{% url 'inventario:editar_instructor' instructor.instructor_id %}" style="text-decoration: none; color: #e6edf3; background: #21262d; border: 1px solid #30363d; padding: 5px 10px; border-radius: 4px;" title="Editar">✏️</a>
-                            
-                            <!-- Botón Eliminar -->
-                            <form action="{% url 'inventario:eliminar_instructor' instructor.instructor_id %}" method="POST" style="margin: 0;" onsubmit="return confirm('¿Estás seguro de eliminar a este instructor?');">
-                                {% csrf_token %}
-                                <button type="submit" style="text-decoration: none; color: #e6edf3; background: #21262d; border: 1px solid #30363d; padding: 5px 10px; border-radius: 4px; cursor: pointer;" title="Eliminar">🗑</button>
-                            </form>
-                        </div>
-                    </td>
+    <div style="display: flex; gap: 4px; justify-content: center;">
+        <!-- Botón Editar -->
+        <a href="{% url 'inventario:editar_instructor' instructor.instructor_id %}" style="background: #161b22; padding: 6px 8px; border-radius: 6px; border: 1px solid #30363d; text-decoration: none; color: white; font-size: 12px;" title="Editar">✏️</a>
+        
+        <!-- Botón Eliminar -->
+        <a href="{% url 'inventario:eliminar_instructor' instructor.instructor_id %}" style="background: #161b22; padding: 6px 8px; border-radius: 6px; border: 1px solid #30363d; text-decoration: none; color: white; font-size: 12px;" title="Eliminar">🗑️</a>
+     </div>
+     </td>
                 </tr>
                 {% endfor %}
             </tbody>

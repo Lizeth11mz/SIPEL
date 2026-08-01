@@ -3,67 +3,117 @@
 {% block title %}Gestión de Usuarios{% endblock %}
 
 {% block content %}
-<div class="usuarios-container" style="padding: 20px;">
+<div class="usuarios-container" style="padding: 20px 30px; width: 100%; box-sizing: border-box;">
 
-    {# Cabecera #}
-    <div style="background-color: #f39c12; padding: 15px; border-radius: 5px; color: white; margin-bottom: 20px;">
-        <h1 style="margin:0;">👤 GESTIÓN DE USUARIOS</h1>
+    {# Cabecera estilo tarjeta blanca con subtítulo #}
+    <div style="background-color: white; padding: 20px 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 20px;">
+        <div style="background-color: #fff7ed; padding: 12px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+            <span style="font-size: 28px;">👥</span>
+        </div>
+        <div>
+            <h1 style="margin: 0 0 4px 0; font-size: 22px; color: #1e293b; font-weight: 700;">GESTIÓN DE USUARIOS POR ROL</h1>
+            <p style="margin: 0; color: #64748b; font-size: 14px;">Administra y controla los usuarios del sistema según su rol</p>
+        </div>
     </div>
 
-    {# --- Verificación de permisos --- #}
     {% if request.user.is_superuser or "Admin" in request.user.groups.all|join:"," %}
 
-        {# --- Barra de Filtros y Acción --- #}
-        <form method="GET" action="{% url 'inventario:gestion_usuarios' %}" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
-            <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Buscar usuario..." style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; flex-grow: 1;">
+        {# --- BOTONES DE NAVEGACIÓN (Pestañas superiores estilo tarjeta) --- #}
+        <div style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; width: 100%;">
             
-            <select name="estado" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+            <a href="?rol=Administrador{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}" 
+               style="padding: 16px 20px; font-size: 15px; border-radius: 10px; text-decoration: none; font-weight: 600; 
+               background-color: {% if rol_seleccionado == 'Administrador' or not rol_seleccionado %}#f97316{% else %}white{% endif %}; 
+               color: {% if rol_seleccionado == 'Administrador' or not rol_seleccionado %}white{% else %}#1e293b{% endif %}; 
+               border: 1px solid {% if rol_seleccionado == 'Administrador' or not rol_seleccionado %}#f97316{% else %}#e2e8f0{% endif %}; 
+               box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); flex: 1; text-align: center; min-width: 200px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
+               🛡️ Administradores
+            </a>
+
+            <a href="?rol=Instructor{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}" 
+               style="padding: 16px 20px; font-size: 15px; border-radius: 10px; text-decoration: none; font-weight: 600; 
+               background-color: {% if rol_seleccionado == 'Instructor' %}#f97316{% else %}white{% endif %}; 
+               color: {% if rol_seleccionado == 'Instructor' %}white{% else %}#1e293b{% endif %}; 
+               border: 1px solid {% if rol_seleccionado == 'Instructor' %}#f97316{% else %}#e2e8f0{% endif %}; 
+               box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); flex: 1; text-align: center; min-width: 200px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
+               👨‍🏫 Instructores
+            </a>
+
+            <a href="?rol=Estudiante{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.estado %}&estado={{ request.GET.estado }}{% endif %}" 
+               style="padding: 16px 20px; font-size: 15px; border-radius: 10px; text-decoration: none; font-weight: 600; 
+               background-color: {% if rol_seleccionado == 'Estudiante' %}#f97316{% else %}white{% endif %}; 
+               color: {% if rol_seleccionado == 'Estudiante' %}white{% else %}#1e293b{% endif %}; 
+               border: 1px solid {% if rol_seleccionado == 'Estudiante' %}#f97316{% else %}#e2e8f0{% endif %}; 
+               box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); flex: 1; text-align: center; min-width: 200px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
+               🎓 Estudiantes
+            </a>
+        </div>
+
+        {# --- Barra de Búsqueda y Filtro (Diseño limpio y moderno) --- #}
+        <form method="GET" action="{% url 'inventario:gestion_usuarios' %}" style="margin-bottom: 20px; display: flex; gap: 15px; align-items: center; background: white; padding: 15px 20px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); width: 100%; box-sizing: border-box;">
+            <input type="hidden" name="rol" value="{{ rol_seleccionado }}">
+            
+            <div style="position: relative; flex-grow: 1; display: flex; align-items: center;">
+                <span style="position: absolute; left: 15px; font-size: 15px; color: #94a3b8;">🔍</span>
+                <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Buscar por usuario o nombre..." style="width: 100%; padding: 10px 15px 10px 42px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; background-color: #f8fafc; box-sizing: border-box;">
+            </div>
+            
+            <select name="estado" style="padding: 10px 15px; font-size: 14px; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc; color: #334155; outline: none; cursor: pointer;">
                 <option value="">Todos los estados</option>
                 <option value="activo" {% if request.GET.estado == 'activo' %}selected{% endif %}>Activo</option>
                 <option value="inactivo" {% if request.GET.estado == 'inactivo' %}selected{% endif %}>Inactivo</option>
             </select>
 
-            <button type="submit" class="btn" style="background-color: #27ae60; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Filtrar</button>
-            <a href="{% url 'inventario:crear_usuario' %}" class="btn" style="background-color: #f39c12; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">+ Nuevo</a>
+            <button type="submit" style="background-color: #f97316; color: white; padding: 10px 22px; font-size: 14px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; box-shadow: 0 2px 4px rgba(249,115,22,0.3);">Buscar</button>
         </form>
 
-        {# --- Tabla de Usuarios --- #}
-        <div style="background-color: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd; color: black;">
-            <table style="width: 100%; border-collapse: collapse; color: black;">
+        {# --- TABLA DINÁMICA --- #}
+        <div style="background-color: white; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 30px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); width: 100%; box-sizing: border-box;">
+            <h2 style="color: #1e293b; border-bottom: 2px solid #f97316; padding-bottom: 10px; margin-top: 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+                {% if rol_seleccionado == 'Administrador' or not rol_seleccionado %}🛡️ Administradores
+                {% elif rol_seleccionado == 'Instructor' %}👨‍🏫 Instructores
+                {% else %}🎓 Estudiantes{% endif %}
+            </h2>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
                 <thead>
-                    <tr style="background-color: #f4f4f4; text-align: left; color: black;">
-                        <th style="padding: 12px; border-bottom: 2px solid #ddd;">ID</th>
-                        <th style="padding: 12px; border-bottom: 2px solid #ddd;">Usuario</th>
-                        <th style="padding: 12px; border-bottom: 2px solid #ddd;">Nombre</th>
-                        <th style="padding: 12px; border-bottom: 2px solid #ddd;">Rol</th>
-                        <th style="padding: 12px; border-bottom: 2px solid #ddd;">Estado</th>
-                        <th style="padding: 12px; border-bottom: 2px solid #ddd; text-align: center;">Acciones</th>
+                    <tr style="background-color: #f8fafc; text-align: left; color: #475569; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;">
+                        <th style="padding: 14px 16px; border-bottom: 2px solid #e2e8f0; width: 8%;">ID</th>
+                        <th style="padding: 14px 16px; border-bottom: 2px solid #e2e8f0; width: 25%;">Usuario</th>
+                        <th style="padding: 14px 16px; border-bottom: 2px solid #e2e8f0; width: 35%;">Nombre</th>
+                        <th style="padding: 14px 16px; border-bottom: 2px solid #e2e8f0; width: 15%;">Estado</th>
+                        <th style="padding: 14px 16px; border-bottom: 2px solid #e2e8f0; text-align: center; width: 17%;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for usuario in usuarios %}
-                    <tr style="border-bottom: 1px solid #eee; color: black;">
-                        <td style="padding: 10px;">{{ usuario.id }}</td>
-                        <td style="padding: 10px;">{{ usuario.username }}</td>
-                        <td style="padding: 10px;">{{ usuario.first_name }} {{ usuario.last_name }}</td>
-                        <td style="padding: 10px;">{{ usuario.groups.first.name|default:"Sin rol" }}</td>
-                        <td style="padding: 10px;">{% if usuario.is_active %}Activo{% else %}Inactivo{% endif %}</td>
-                        <td style="padding: 10px; text-align: center;">
-                            <a href="{% url 'inventario:editar_usuario' usuario.pk %}" style="color: #2980b9; margin-right: 10px; text-decoration: none; font-weight: bold;">Editar</a>
-                            <a href="{% url 'inventario:eliminar_usuario' usuario.pk %}" style="color: #c0392b; text-decoration: none; font-weight: bold;" onclick="return confirm('¿Estás seguro?')">Eliminar</a>
+                    <tr style="border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 14px;">
+                        <td style="padding: 14px 16px; color: #64748b;">{{ usuario.id }}</td>
+                        <td style="padding: 14px 16px; font-weight: 600; color: #0f172a;">{{ usuario.username }}</td>
+                        <td style="padding: 14px 16px;">{{ usuario.first_name }} {{ usuario.last_name }}</td>
+                        <td style="padding: 14px 16px;">
+                            {% if usuario.is_active %}
+                                <span style="background-color: #dcfce7; color: #166534; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">Activo</span>
+                            {% else %}
+                                <span style="background-color: #fee2e2; color: #991b1b; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 14px 16px; text-align: center;">
+                            <a href="{% url 'inventario:editar_usuario' usuario.pk %}" style="display: inline-flex; align-items: center; gap: 4px; color: #0284c7; background-color: #f0f9ff; padding: 5px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 12px; border: 1px solid #bae6fd; margin-right: 6px;">✏️ Editar</a>
+                             <a href="{% url 'inventario:eliminar_usuario' usuario.pk %}" style="display: inline-flex; align-items: center; gap: 4px; color: #dc2626; background-color: #fef2f2; padding: 5px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 12px; border: 1px solid #fecaca;">🗑️ Eliminar</a>
                         </td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="6" style="padding: 20px; text-align: center; color: black;">No se encontraron usuarios.</td></tr>
+                    <tr><td colspan="5" style="padding: 30px; text-align: center; color: #94a3b8; font-size: 15px;">No hay registros encontrados en esta sección.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
 
     {% else %}
-        <div style="text-align: center; padding: 50px; background-color: #f8d7da; color: #721c24; border-radius: 8px;">
-            <h2>❌ Acceso Denegado</h2>
-            <p>No tienes permisos de administrador.</p>
+        <div style="text-align: center; padding: 40px; background-color: #fee2e2; color: #991b1b; border-radius: 12px; border: 1px solid #fecaca; width: 100%; box-sizing: border-box;">
+            <h2 style="margin-top: 0;">❌ Acceso Denegado</h2>
+            <p style="font-size: 15px; margin: 0;">No tienes permisos de administrador.</p>
         </div>
     {% endif %}
 </div>
