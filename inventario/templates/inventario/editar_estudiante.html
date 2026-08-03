@@ -1,41 +1,149 @@
+<!-- inventario/templates/inventario/editar_estudiante.html -->
 {% extends 'core/base.html' %}
 {% load static %}
 
-{% block title %}Eliminar Usuario{% endblock %}
+{% block title %}Editar Estudiante{% endblock %}
 
 {% block content %}
-<div style="padding: 40px 20px; display: flex; justify-content: center; align-items: center; min-height: 70vh;">
-    <div style="max-width: 500px; width: 100%; padding: 30px; background-color: #1e293b; color: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; font-family: system-ui, -apple-system, sans-serif; border: 1px solid #334155;">
+<style>
+    .form-container {
+        max-width: 650px;
+        margin: 30px auto;
+        padding: 35px;
+        background-color: #1e293b;
+        color: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        font-family: Arial, sans-serif;
+        border: 1px solid #334155;
+    }
+    .form-group {
+        margin-bottom: 20px;
+    }
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        color: #e2e8f0;
+    }
+    .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        background-color: #0f172a;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        color: #f8fafc;
+        font-size: 14px;
+        box-sizing: border-box;
+        outline: none;
+    }
+    .form-control:focus {
+        border-color: #3b82f6;
+    }
+    .form-control:disabled, .form-control[readonly] {
+        background-color: #090d16;
+        color: #94a3b8;
+        cursor: not-allowed;
+    }
+    .btn-container {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+        align-items: center;
+    }
+    .btn-save {
+        background-color: #22c55e;
+        color: white;
+        padding: 12px 25px;
+        border-radius: 8px;
+        font-weight: bold;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        transition: opacity 0.2s;
+    }
+    .btn-save:hover { opacity: 0.9; }
+    .btn-cancel {
+        color: #94a3b8;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 14px;
+        padding: 12px 20px;
+    }
+    .btn-cancel:hover { color: white; }
+</style>
+
+<div class="form-container">
+    <h2 style="color: #f8fafc; margin-top: 0; margin-bottom: 25px; font-size: 22px; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #334155; padding-bottom: 12px;">
+        ✏️ EDITAR ESTUDIANTE
+    </h2>
+
+    <form method="POST">
+        {% csrf_token %}
         
-        <div style="font-size: 40px; margin-bottom: 10px;">⚠️</div>
-        
-        <h2 style="color: #f87171; margin-top: 0; font-size: 24px; font-weight: 700;">¿Confirmar eliminación?</h2>
-        
-        <p style="color: #cbd5e1; font-size: 15px; margin-bottom: 15px;">
-            Estás a punto de eliminar al usuario del sistema:
-        </p>
-        
-        <div style="font-size: 1.25em; font-weight: 600; background-color: #0f172a; border: 1px solid #334155; padding: 12px; border-radius: 8px; margin-bottom: 15px; color: #f8fafc; word-break: break-all;">
-            {{ usuario.username }}
+        <!-- ID Estudiante (No se modifica) -->
+        <div class="form-group">
+            <label>ID Estudiante</label>
+            <input type="text" class="form-control" value="{{ estudiante.estudiante_id }}" disabled>
         </div>
-        
-        <p style="font-size: 13px; color: #94a3b8; margin-bottom: 25px;">
-            Esta acción eliminará sus credenciales de acceso permanentemente y no se puede deshacer.
-        </p>
-        
-        <form method="POST">
-            {% csrf_token %}
-            
-            <div style="display: flex; gap: 12px; justify-content: center;">
-                <button type="submit" style="padding: 10px 22px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; cursor: pointer; border: none; background-color: #ef4444; color: white; font-size: 14px; transition: opacity 0.2s;">
-                    Sí, eliminar
-                </button>
-                
-                <a href="{% url 'inventario:gestion_usuarios' %}" style="padding: 10px 22px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; cursor: pointer; border: none; background-color: #64748b; color: white; font-size: 14px; transition: opacity 0.2s;">
-                    Cancelar
-                </a>
-            </div>
-        </form>
-    </div>
+
+        <!-- Nombre Completo -->
+        <div class="form-group">
+            <label>Nombre Completo</label>
+            <input type="text" name="nombre_completo" class="form-control" value="{{ estudiante.nombre_completo }}" required>
+        </div>
+
+        <!-- Correo Email -->
+        <div class="form-group">
+            <label>Correo (Email)</label>
+            <input type="email" name="email" class="form-control" value="{{ estudiante.email }}" required>
+        </div>
+
+        <!-- Teléfono -->
+        <div class="form-group">
+            <label>Teléfono</label>
+            <input type="text" name="telefono" class="form-control" value="{{ estudiante.telefono }}">
+        </div>
+
+        <!-- Dirección -->
+        <div class="form-group">
+            <label>Dirección</label>
+            <input type="text" name="direccion" class="form-control" value="{{ estudiante.direccion }}">
+        </div>
+
+        <!-- Tipo de Documento -->
+        <div class="form-group">
+            <label>Tipo de Documento</label>
+            <select name="tipo_documento" class="form-control">
+                <option value="INE" {% if estudiante.tipo_documento == 'INE' %}selected{% endif %}>INE</option>
+                <option value="CC" {% if estudiante.tipo_documento == 'CC' %}selected{% endif %}>CC</option>
+                <option value="Pasaporte" {% if estudiante.tipo_documento == 'Pasaporte' %}selected{% endif %}>Pasaporte</option>
+                <option value="DNI" {% if estudiante.tipo_documento == 'DNI' %}selected{% endif %}>DNI</option>
+            </select>
+        </div>
+
+        <!-- Documento -->
+        <div class="form-group">
+            <label>Documento</label>
+            <input type="text" name="numero_documento" class="form-control" placeholder="Escriba el número de documento nuevo (opcional)...">
+            <small style="color: #94a3b8; font-size: 11px; margin-top: 4px; display: block;">* Déjalo en blanco si deseas conservar el número de documento actual.</small>
+        </div>
+
+        <!-- Estado (CORREGIDO AQUÍ) -->
+        <div class="form-group">
+            <label>Estado</label>
+            <select name="estado" class="form-control" style="position: relative; z-index: 10; cursor: pointer;">
+                <option value="Activo" {% if estudiante.estado == 'Activo' %}selected{% endif %}>Activo</option>
+                <option value="Inactivo" {% if estudiante.estado == 'Inactivo' %}selected{% endif %}>Inactivo</option>
+            </select>
+        </div>
+
+        <!-- Botones Guardar y Cancelar -->
+        <div class="btn-container">
+            <button type="submit" class="btn-save">Guardar Cambios</button>
+            <a href="{% url 'inventario:gestion_estudiantes' %}" class="btn-cancel">Cancelar</a>
+        </div>
+    </form>
 </div>
 {% endblock %}

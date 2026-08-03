@@ -52,10 +52,11 @@ urlpatterns = [
     path('admin/reportes/pdf/', views.generar_reporte_pdf, name='generar_reporte_pdf'),
     path('admin/reportes/excel/', views.generar_reporte_excel, name='generar_reporte_excel'),
 
+    
     # --- GESTIÓN USUARIOS ---
     path('usuarios/', views.gestion_usuarios, name='gestion_usuarios'),
-    path('usuarios/editar/<int:usuario_id>/', views.editar_usuario, name='editar_usuario'),
-    path('usuarios/eliminar/<int:usuario_id>/', views.eliminar_usuario, name='eliminar_usuario'),
+    path('usuarios/editar/<int:pk>/', views.editar_usuario, name='editar_usuario'),
+    path('usuarios/eliminar/<int:pk>/', views.eliminar_usuario, name='eliminar_usuario'),
     # --- LOGOUT ---
     path('logout/', views.custom_logout_view, name='logout'),
 

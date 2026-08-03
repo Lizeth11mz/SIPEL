@@ -99,9 +99,9 @@
                             {% endif %}
                         </td>
                         <td style="padding: 14px 16px; text-align: center;">
-                            <a href="{% url 'inventario:editar_usuario' usuario.pk %}" style="display: inline-flex; align-items: center; gap: 4px; color: #0284c7; background-color: #f0f9ff; padding: 5px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 12px; border: 1px solid #bae6fd; margin-right: 6px;">✏️ Editar</a>
-                             <a href="{% url 'inventario:eliminar_usuario' usuario.pk %}" style="display: inline-flex; align-items: center; gap: 4px; color: #dc2626; background-color: #fef2f2; padding: 5px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 12px; border: 1px solid #fecaca;">🗑️ Eliminar</a>
-                        </td>
+                        <a href="{% url 'inventario:editar_usuario' usuario.pk %}" style="display: inline-flex; align-items: center; gap: 4px; color: #0284c7; background-color: #f0f9ff; padding: 5px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 12px; border: 1px solid #bae6fd; margin-right: 6px;">✏️ Editar</a>
+                        <a href="{% url 'inventario:eliminar_usuario' usuario.pk %}" style="display: inline-flex; align-items: center; gap: 4px; color: #dc2626; background-color: #fef2f2; padding: 5px 12px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 12px; border: 1px solid #fecaca;">🗑️ Eliminar</a>
+                       </td>
                     </tr>
                     {% empty %}
                     <tr><td colspan="5" style="padding: 30px; text-align: center; color: #94a3b8; font-size: 15px;">No hay registros encontrados en esta sección.</td></tr>

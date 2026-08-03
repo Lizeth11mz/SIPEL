@@ -182,75 +182,49 @@ def editar_estudiante(request, estudiante_id):
     estudiante = get_object_or_404(Estudiante, pk=estudiante_id)
     
     if request.method == 'POST':
-        form = EstudianteForm(request.POST, instance=estudiante)
-        
-        # En lugar de usar form.is_valid() estricto que bloquea campos cifrados/readonly,
-        # validamos los campos básicos directamente o procesamos la data del POST de forma segura.
         try:
             with transaction.atomic():
-                # 1. Extraemos los valores directamente del diccionario request.POST
-                nombre = request.POST.get('nombre_completo', '').strip()
-                email = request.POST.get('email', '').strip()
-                telefono = request.POST.get('telefono', '').strip()
-                tipo_doc = request.POST.get('tipo_documento', '').strip()
-                estado = request.POST.get('estado', 'Activo').strip()
-                direccion = request.POST.get('direccion', '').strip()
-                usuario = request.POST.get('usuario', '').strip()
-                nuevo_num_doc = request.POST.get('numero_documento', '').strip()
+                # 1. Capturamos los valores del formulario
+                estudiante.nombre_completo = request.POST.get('nombre_completo', '').strip()
+                estudiante.email = request.POST.get('email', '').strip()
+                estudiante.telefono = request.POST.get('telefono', '').strip()
+                estudiante.tipo_documento = request.POST.get('tipo_documento', '').strip()
+                estudiante.estado = request.POST.get('estado', 'Activo').strip()  # <--- ¡Aquí toma el Activo/Inactivo perfectamente!
+                estudiante.direccion = request.POST.get('direccion', '').strip()
                 
-                with connection.cursor() as cursor:
-                    # 2. Si el usuario ingresó un nuevo número de documento, lo ciframos con SQL Server
-                    if nuevo_num_doc:
+                # Guardamos los campos de texto comunes usando el ORM de Django
+                estudiante.save(update_fields=['nombre_completo', 'email', 'telefono', 'tipo_documento', 'estado', 'direccion'])
+
+                # 2. Si el usuario ingresó un NUEVO número de documento (que requiere cifrado simétrico)
+                nuevo_num_doc = request.POST.get('numero_documento', '').strip()
+                if nuevo_num_doc:
+                    with connection.cursor() as cursor:
                         cursor.execute("""
                             OPEN SYMMETRIC KEY ClaveDatos DECRYPTION BY CERTIFICATE CertificadoDatos;
                             
                             UPDATE Estudiantes 
-                            SET nombre_completo = %s,
-                                email = %s,
-                                telefono = %s,
-                                direccion = %s,
-                                usuario = %s,
-                                tipo_documento = %s,
-                                estado = %s,
-                                numero_documento = EncryptByKey(Key_GUID('ClaveDatos'), CONVERT(VARBINARY(MAX), %s))
-                            WHERE estudiante_id = %s;
+                            SET numero_documento = EncryptByKey(Key_GUID('ClaveDatos'), CONVERT(VARBINARY(MAX), ?))
+                            WHERE estudiante_id = ?;
                             
                             CLOSE SYMMETRIC KEY ClaveDatos;
-                        """, [nombre, email, telefono, direccion, usuario, tipo_doc, estado, nuevo_num_doc, estudiante_id])
-                    
-                    # 3. Si dejó el documento en blanco, actualizamos el resto de campos sin tocar el documento actual
-                    else:
-                        cursor.execute("""
-                            UPDATE Estudiantes 
-                            SET nombre_completo = %s,
-                                email = %s,
-                                telefono = %s,
-                                direccion = %s,
-                                usuario = %s,
-                                tipo_documento = %s,
-                                estado = %s
-                            WHERE estudiante_id = %s;
-                        """, [nombre, email, telefono, direccion, usuario, tipo_doc, estado, estudiante_id])
+                        """, [nuevo_num_doc, estudiante_id])
 
-                # 4. Sincronizamos con el usuario de autenticación si existe
+                # 3. Sincronizamos con el usuario de autenticación si existe
                 if hasattr(estudiante, 'usuario_auth') and estudiante.usuario_auth:
                     user = estudiante.usuario_auth
-                    partes = nombre.strip().split(' ', 1)
+                    partes = estudiante.nombre_completo.split(' ', 1)
                     user.first_name = partes[0]
                     user.last_name = partes[1] if len(partes) > 1 else ''
-                    user.email = email
+                    user.email = estudiante.email
                     user.save()
 
-            messages.success(request, 'Estudiante actualizado correctamente.')
-            return redirect('inventario:gestion_estudiantes')
-            
+                messages.success(request, 'Estudiante actualizado correctamente.')
+                return redirect('inventario:gestion_estudiantes')
+                
         except Exception as e:
             messages.error(request, f'Error al actualizar en la base de datos: {e}')
-    else:
-        form = EstudianteForm(instance=estudiante)
-        
+            
     return render(request, 'inventario/editar_estudiante.html', {
-        'form': form,
         'estudiante': estudiante
     })
 @login_required
@@ -1742,8 +1716,8 @@ def gestion_usuarios(request):
         'rol_seleccionado': rol_seleccionado,
     }
     return render(request, 'admin_sistema/usuarios.html', contexto)
-def editar_usuario(request, usuario_id):
-    usuario = get_object_or_404(User, pk=usuario_id)
+def editar_usuario(request, pk):
+    usuario = get_object_or_404(User, pk=pk)
     rol_actual = usuario.groups.first().name if usuario.groups.exists() else "Sin rol"
 
     if request.method == 'POST':
@@ -1780,18 +1754,18 @@ def editar_usuario(request, usuario_id):
     }
     return render(request, 'inventario/editar_usuario.html', context)
 
-def eliminar_usuario(request, usuario_id):
-    usuario = get_object_or_404(User, pk=usuario_id)
+def eliminar_usuario(request, pk):
+    usuario = get_object_or_404(User, pk=pk)
     if request.method == 'POST':
         usuario.delete()
         messages.success(request, 'Usuario eliminado correctamente')
         return redirect('inventario:gestion_usuarios')
         
     return render(request, 'inventario/eliminar_usuario.html', {'usuario': usuario})
+
 def custom_logout_view(request):
     logout(request)
     return redirect('core:index')
-
     
 # --- VISTAS POR ROL ---
 @login_required

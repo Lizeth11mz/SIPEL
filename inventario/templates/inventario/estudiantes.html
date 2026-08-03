@@ -17,23 +17,6 @@
     </button>
 </div>
 
-<!-- Bloque de Mensajes de Notificación (Éxito / Error) -->
-{% if messages %}
-    <div style="margin-bottom: 20px;">
-        {% for message in messages %}
-            <div style="padding: 14px 20px; border-radius: 8px; color: white; font-weight: 500; display: flex; align-items: center; justify-content: space-between;
-                {% if message.tags == 'error' %}background-color: #3a1a1a; border: 1px solid #ff6b6b;
-                {% elif message.tags == 'success' %}background-color: #1a3a2a; border: 1px solid #3fb950;
-                {% else %}background-color: #1f6feb; border: 1px solid #388bfd;{% endif %}">
-                <span>
-                    {% if message.tags == 'success' %}✅ {% elif message.tags == 'error' %}⚠️ {% endif %}
-                    {{ message }}
-                </span>
-                <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: white; font-size: 16px; cursor: pointer; line-height: 1;">&times;</button>
-            </div>
-        {% endfor %}
-    </div>
-{% endif %}
 
 <!-- Estadísticas de Estudiantes -->
 <div class="stats-container" style="display: flex; gap: 15px; margin-bottom: 20px;">
@@ -131,13 +114,13 @@
                         ● {{ est.estado }}
                     </span>
                 </td>
-
-                <td style="padding: 12px 6px; text-align: center;">
-                    <div style="display: flex; gap: 4px; justify-content: center;">
-                        <a href="{% url 'inventario:editar_estudiante' est.estudiante_id %}" style="background: #161b22; padding: 6px 8px; border-radius: 6px; border: 1px solid #30363d; text-decoration: none; color: white; font-size: 12px;" title="Editar">✏️</a>
-                        <a href="{% url 'inventario:eliminar_estudiante' est.estudiante_id %}" style="background: #161b22; padding: 6px 8px; border-radius: 6px; border: 1px solid #30363d; text-decoration: none; color: white; font-size: 12px;" title="Eliminar">🗑️</a>
-                    </div>
-                </td>
+<td style="padding: 12px 6px; text-align: center;">
+    <div style="display: flex; gap: 4px; justify-content: center;">
+        <!-- Enlace directo a editar_estudiante.html -->
+        <a href="{% url 'inventario:editar_estudiante' est.estudiante_id %}">✏️</a>
+      <a href="{% url 'inventario:eliminar_estudiante' est.estudiante_id %}">🗑️</a>
+    </div>
+</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -157,3 +140,23 @@
 </script>
 
 {% endblock %}
+
+<script>
+    function openNewStudentModal() {
+        const modal = document.getElementById('newStudentModal');
+        if (modal) {
+            modal.style.display = 'block';
+        }
+    }
+
+    function abrirModalEliminar(urlEliminacion) {
+        // Si tu modal de eliminación usa un formulario dinámico, aquí se asigna la acción:
+        const formEliminar = document.getElementById('formEliminar');
+        if (formEliminar) {
+            formEliminar.action = urlEliminacion;
+        } else {
+            // Si prefieres redireccionar directamente al confirmar en la ruta:
+            window.location.href = urlEliminacion;
+        }
+    }
+</script>
