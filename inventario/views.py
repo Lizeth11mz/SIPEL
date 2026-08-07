@@ -1190,7 +1190,7 @@ def reportes_view(request):
             pagos_labels.append(rp[0] or 'Sin Fecha')
             pagos_data.append(float(rp[1]) if rp[1] else 0.0)
 
-        # Lógica existente para tus tablas de reportes
+        # Lógica de tablas de reportes dentro del mismo contexto del cursor
         if tipo_reporte == 'estudiantes':
             columnas = ['ID', 'Nombre Completo', 'Documento', 'Correo', 'Teléfono', 'Direccion', 'Fecha Registro', 'Estado']
             cursor.execute("""
@@ -1247,13 +1247,53 @@ def reportes_view(request):
                 WHERE p.fecha_pago BETWEEN %s AND %s
             """, [fecha_inicio, fecha_fin])
 
+        # --- FRAGMENTACIONES VERTICALES SEPARADAS ---
+        elif tipo_reporte == 'fragmentacion_vertical_estudiantes':
+            columnas = ['ID Estudiante', 'Nombre Completo', 'Email', 'Teléfono', 'Dirección', 'Documento']
+            cursor.execute("""
+                SELECT estudiante_id, nombre_completo, email, telefono, direccion, numero_documento 
+                FROM Vista_Estudiantes
+            """)
+            
+        elif tipo_reporte == 'fragmentacion_vertical_instructores':
+            columnas = ['ID Instructor', 'Nombre Completo', 'Email', 'Teléfono', 'Dirección', 'Cédula Profesional']
+            cursor.execute("""
+                SELECT instructor_id, nombre_completo, email, telefono, direccion, cedula_profesional 
+                FROM Instructores
+            """)
+
+        # --- FRAGMENTACIONES HORIZONTALES SEPARADAS CON FILTRO DE FECHAS DINÁMICO ---
+        elif tipo_reporte == 'fragmentacion_horizontal_inscripciones':
+            columnas = ['ID Inscripción', 'Estudiante', 'Curso', 'Fecha Inscripción', 'Estado', 'Total Pago']
+            cursor.execute("""
+                SELECT i.inscripcion_id, e.nombre_completo, c.nombre_curso, i.fecha_inscripcion, i.estado, i.total_pago 
+                FROM VW_Inscripciones_Historicas i
+                JOIN Estudiantes e ON i.estudiante_id = e.estudiante_id
+                JOIN Cursos c ON i.curso_id = c.curso_id
+                WHERE i.fecha_inscripcion BETWEEN %s AND %s
+            """, [fecha_inicio, fecha_fin])
+
+        elif tipo_reporte == 'fragmentacion_horizontal_pagos':
+            columnas = ['Pago ID', 'Inscripción ID', 'Fecha Pago', 'Monto', 'Referencia', 'Estado']
+            cursor.execute("""
+                SELECT pago_id, inscripcion_id, fecha_pago, monto, referencia_pago, estado 
+                FROM VW_Pagos_Historicos
+                WHERE fecha_pago BETWEEN %s AND %s
+            """, [fecha_inicio, fecha_fin])
+            
+        elif tipo_reporte == 'reporte_pivot':
+            columnas = ['Curso', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+            cursor.execute("""
+                SELECT * FROM Vista_Inscripciones_Por_Mes
+            """)
+
         raw_resultados = cursor.fetchall()
-        
-        resultados = []
-        for fila in raw_resultados:
-            fila_lista = list(fila)
-            # Tus funciones de cifrado se mantienen intactas
-            resultados.append(tuple(fila_lista))
+    
+    resultados = []
+    for fila in raw_resultados:
+        fila_lista = list(fila)
+        # Tus funciones de cifrado se mantienen intactas
+        resultados.append(tuple(fila_lista))
 
     context = {
         'tipo_reporte': tipo_reporte,
@@ -1261,8 +1301,19 @@ def reportes_view(request):
         'fecha_fin': fecha_fin,
         'columnas': columnas,
         'resultados': resultados,
-        'nombres': ['Reporte de Estudiantes', 'Reporte de Cursos','Reporte de Instructores', 'Reporte de Inscripciones', 'Reporte de Evaluaciones', 'Reporte de Pagos'],
-        # Variables enviadas al template para las gráficas automáticas
+        'nombres': [
+            'Reporte de Estudiantes', 
+            'Reporte de Cursos',
+            'Reporte de Instructores', 
+            'Reporte de Inscripciones', 
+            'Reporte de Evaluaciones', 
+            'Reporte de Pagos',
+            'Fragmentación Vertical (Estudiantes)',
+            'Fragmentación Vertical (Instructores)',
+            'Fragmentación Horizontal (Inscripciones)',
+            'Fragmentación Horizontal (Pagos)',
+            'Reporte Pivot (Inscripciones por Mes)'
+        ],
         'total_activos': total_activos,
         'total_inactivos': total_inactivos,
         'cursos_labels': cursos_labels,
@@ -1280,7 +1331,18 @@ def reportes_view(request):
     return render(request, 'inventario/reportes.html', context)
 @login_required
 def generar_reporte_pdf(request):
-    tipo_reporte = request.GET.get('tipo', 'estudiantes')
+    tipo_reporte = request.GET.get('tipo', request.GET.get('tipo_reporte', 'estudiantes'))
+    
+    # Mapeo de compatibilidad para URLs que utilicen los nombres antiguos
+    equivalencias_tipos = {
+        'fragmentacion_vertical_estudiantes': 'datos_sensibles_estudiantes',
+        'fragmentacion_vertical_instructores': 'datos_sensibles_instructores',
+        'fragmentacion_horizontal_inscripciones': 'inscripciones_historicas',
+        'fragmentacion_horizontal_pagos': 'pagos_historicos',
+        'reporte_pivot': 'resumen_anual_cursos',
+    }
+    tipo_reporte = equivalencias_tipos.get(tipo_reporte, tipo_reporte)
+
     fecha_inicio = request.GET.get('fecha_inicio', '2026-01-01')
     fecha_fin = request.GET.get('fecha_fin', datetime.now().strftime('%Y-%m-%d'))
     
@@ -1291,6 +1353,7 @@ def generar_reporte_pdf(request):
         if tipo_reporte == 'estudiantes':
             columnas = ['ID', 'Nombre Completo', 'Documento (Cifrado)', 'Correo', 'Teléfono', 'Dirección', 'Fecha Registro', 'Estado']
             cursor.execute("SELECT estudiante_id, nombre_completo, numero_documento, email, telefono, direccion, fecha_registro, estado FROM Estudiantes WHERE fecha_registro BETWEEN %s AND %s", [fecha_inicio, fecha_fin])
+        
         elif tipo_reporte == 'cursos':
             columnas = ['ID Curso', 'Nombre', 'Categoría', 'Duración (Horas)', 'Costo', 'Estado']
             cursor.execute("SELECT curso_id, nombre_curso, categoria, duracion_horas, costo, estado FROM Cursos")
@@ -1309,6 +1372,7 @@ def generar_reporte_pdf(request):
                 LEFT JOIN Instructores ins ON c.instructor_id = ins.instructor_id 
                 WHERE i.fecha_inscripcion BETWEEN %s AND %s
             """, [fecha_inicio, fecha_fin])
+            
         elif tipo_reporte == 'evaluaciones':
             columnas = ['Evaluación ID', 'Estudiante', 'Curso', 'Calificación', 'Comentarios (Cifrados)', 'Fecha Evaluación']
             cursor.execute("""
@@ -1320,9 +1384,40 @@ def generar_reporte_pdf(request):
                 JOIN Cursos c ON i.curso_id = c.curso_id 
                 WHERE ev.fecha_evaluacion BETWEEN %s AND %s
             """, [fecha_inicio, fecha_fin])
+            
         elif tipo_reporte == 'pagos':
             columnas = ['Pago ID', 'Estudiante', 'Curso', 'Fecha Pago', 'Monto', 'Referencia', 'Estado']
             cursor.execute("SELECT p.pago_id, e.nombre_completo, c.nombre_curso, p.fecha_pago, p.monto, p.referencia_pago, p.estado FROM Pagos p JOIN Inscripciones i ON p.inscripcion_id = i.inscripcion_id JOIN Estudiantes e ON i.estudiante_id = e.estudiante_id JOIN Cursos c ON i.curso_id = c.curso_id WHERE p.fecha_pago BETWEEN %s AND %s", [fecha_inicio, fecha_fin])
+
+        elif tipo_reporte == 'datos_sensibles_estudiantes':
+            columnas = ['ID Estudiante', 'Nombre Completo', 'Email', 'Teléfono', 'Dirección', 'Documento']
+            cursor.execute("SELECT estudiante_id, nombre_completo, email, telefono, direccion, numero_documento FROM Vista_Estudiantes")
+            
+        elif tipo_reporte == 'datos_sensibles_instructores':
+            columnas = ['ID Instructor', 'Nombre Completo', 'Email', 'Teléfono', 'Dirección', 'Cédula Profesional']
+            cursor.execute("SELECT instructor_id, nombre_completo, email, telefono, direccion, cedula_profesional FROM Instructores")
+
+        elif tipo_reporte == 'inscripciones_historicas':
+            columnas = ['ID Inscripción', 'Estudiante', 'Curso', 'Fecha Inscripción', 'Estado', 'Total Pago']
+            cursor.execute("""
+                SELECT i.inscripcion_id, e.nombre_completo, c.nombre_curso, i.fecha_inscripcion, i.estado, i.total_pago 
+                FROM VW_Inscripciones_Historicas i
+                JOIN Estudiantes e ON i.estudiante_id = e.estudiante_id
+                JOIN Cursos c ON i.curso_id = c.curso_id
+                WHERE i.fecha_inscripcion BETWEEN %s AND %s
+            """, [fecha_inicio, fecha_fin])
+
+        elif tipo_reporte == 'pagos_historicos':
+            columnas = ['Pago ID', 'Inscripción ID', 'Fecha Pago', 'Monto', 'Referencia', 'Estado']
+            cursor.execute("""
+                SELECT pago_id, inscripcion_id, fecha_pago, monto, referencia_pago, estado 
+                FROM VW_Pagos_Historicos
+                WHERE fecha_pago BETWEEN %s AND %s
+            """, [fecha_inicio, fecha_fin])
+            
+        elif tipo_reporte == 'resumen_anual_cursos':
+            columnas = ['Curso', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+            cursor.execute("SELECT * FROM Vista_Inscripciones_Por_Mes")
 
         raw_resultados = cursor.fetchall()
         
@@ -1330,17 +1425,13 @@ def generar_reporte_pdf(request):
         for fila in raw_resultados:
             fila_lista = list(fila)
             
-            # Función auxiliar interna para sanitizar y compactar valores cifrados (bytes o strings largos)
             def compactar_cifrado(val):
                 if val is None:
                     return ""
                 if isinstance(val, bytes):
-                    # Convertir bytes a Base64 legible y recortarlo para que quepa en la celda
                     encoded = base64.b64encode(val).decode('utf-8')
                 else:
                     encoded = str(val)
-                
-                # Si excede una longitud razonable para una celda de tabla, recortarlo de forma segura
                 if len(encoded) > 40:
                     return encoded[:37] + "..."
                 return encoded
@@ -1353,6 +1444,10 @@ def generar_reporte_pdf(request):
                 fila_lista[4] = compactar_cifrado(cifrar_valor(fila_lista[4]))
             elif tipo_reporte == 'pagos':
                 fila_lista[5] = compactar_cifrado(cifrar_valor(fila_lista[5]))
+            elif tipo_reporte == 'datos_sensibles_estudiantes':
+                fila_lista[5] = compactar_cifrado(fila_lista[5])
+            elif tipo_reporte == 'datos_sensibles_instructores':
+                fila_lista[5] = compactar_cifrado(fila_lista[5])
                 
             resultados.append(tuple(fila_lista))
 
@@ -1364,37 +1459,16 @@ def generar_reporte_pdf(request):
 
     doc = SimpleDocTemplate(
         file_path,
-        pagesize=landscape(letter),
-        rightMargin=30, leftMargin=30,
+        pagesize=letter,
+        rightMargin=36, leftMargin=36,
         topMargin=80, bottomMargin=40
     )
 
     styles = getSampleStyleSheet()
     
-    style_header = ParagraphStyle(
-        'HeaderStyle',
-        parent=styles['Normal'],
-        fontName='Helvetica-Bold',
-        fontSize=8,
-        textColor=colors.white,
-        alignment=1
-    )
-    
-    style_cell = ParagraphStyle(
-        'CellStyle',
-        parent=styles['Normal'],
-        fontName='Helvetica',
-        fontSize=7,
-        textColor=colors.HexColor("#1f2937")
-    )
-
-    style_cell_cifrado = ParagraphStyle(
-        'CellCifradoStyle',
-        parent=styles['Normal'],
-        fontName='Courier',
-        fontSize=6,
-        textColor=colors.HexColor("#374151")
-    )
+    style_header = ParagraphStyle('HeaderStyle', parent=styles['Normal'], fontName='Helvetica-Bold', fontSize=7.5, textColor=colors.white, alignment=1)
+    style_cell = ParagraphStyle('CellStyle', parent=styles['Normal'], fontName='Helvetica', fontSize=6.5, textColor=colors.HexColor("#1f2937"))
+    style_cell_cifrado = ParagraphStyle('CellCifradoStyle', parent=styles['Normal'], fontName='Courier', fontSize=5.5, textColor=colors.HexColor("#374151"))
 
     elementos = []
     header_row = [Paragraph(col, style_header) for col in columnas]
@@ -1403,28 +1477,10 @@ def generar_reporte_pdf(request):
     for fila in resultados:
         if tipo_reporte == 'estudiantes':
             u_id, nombre, doc_cifrado, correo, tel, direccion, fecha, estado = fila
-            fila_cells = [
-                Paragraph(str(u_id) if u_id is not None else "", style_cell),
-                Paragraph(str(nombre) if nombre is not None else "", style_cell),
-                Paragraph(escape(str(doc_cifrado)), style_cell_cifrado),
-                Paragraph(str(correo) if correo is not None else "", style_cell),
-                Paragraph(str(tel) if tel is not None else "", style_cell),
-                Paragraph(str(direccion) if direccion is not None else "", style_cell),
-                Paragraph(str(fecha) if fecha is not None else "", style_cell),
-                Paragraph(str(estado) if estado is not None else "", style_cell),
-            ]
+            fila_cells = [Paragraph(str(u_id) if u_id is not None else "", style_cell), Paragraph(str(nombre) if nombre is not None else "", style_cell), Paragraph(escape(str(doc_cifrado)), style_cell_cifrado), Paragraph(str(correo) if correo is not None else "", style_cell), Paragraph(str(tel) if tel is not None else "", style_cell), Paragraph(str(direccion) if direccion is not None else "", style_cell), Paragraph(str(fecha) if fecha is not None else "", style_cell), Paragraph(str(estado) if estado is not None else "", style_cell)]
         elif tipo_reporte == 'instructores':
             u_id, nombre, especialidad, ced_cifrada, correo, tel, direccion, estado = fila
-            fila_cells = [
-                Paragraph(str(u_id) if u_id is not None else "", style_cell),
-                Paragraph(str(nombre) if nombre is not None else "", style_cell),
-                Paragraph(str(especialidad) if especialidad is not None else "", style_cell),
-                Paragraph(escape(str(ced_cifrada)), style_cell_cifrado),
-                Paragraph(str(correo) if correo is not None else "", style_cell),
-                Paragraph(str(tel) if tel is not None else "", style_cell),
-                Paragraph(str(direccion) if direccion is not None else "", style_cell),
-                Paragraph(str(estado) if estado is not None else "", style_cell),
-            ]
+            fila_cells = [Paragraph(str(u_id) if u_id is not None else "", style_cell), Paragraph(str(nombre) if nombre is not None else "", style_cell), Paragraph(str(especialidad) if especialidad is not None else "", style_cell), Paragraph(escape(str(ced_cifrada)), style_cell_cifrado), Paragraph(str(correo) if correo is not None else "", style_cell), Paragraph(str(tel) if tel is not None else "", style_cell), Paragraph(str(direccion) if direccion is not None else "", style_cell), Paragraph(str(estado) if estado is not None else "", style_cell)]
         else:
             fila_cells = []
             for i, val in enumerate(fila):
@@ -1432,29 +1488,40 @@ def generar_reporte_pdf(request):
                 es_cifrado = (
                     (tipo_reporte == 'inscripciones' and i == 4) or
                     (tipo_reporte == 'evaluaciones' and i == 4) or
-                    (tipo_reporte == 'pagos' and i == 5)
+                    (tipo_reporte == 'pagos' and i == 5) or
+                    (tipo_reporte in ['datos_sensibles_estudiantes', 'datos_sensibles_instructores'] and i == 5)
                 )
                 estilo_usar = style_cell_cifrado if es_cifrado else style_cell
                 fila_cells.append(Paragraph(escape(val_str), estilo_usar))
             
         data_rows.append(fila_cells)
-        if tipo_reporte == 'estudiantes':
-          col_widths = [30, 95, 115, 135, 110, 65, 100, 52]
-        elif tipo_reporte == 'instructores':
-          col_widths = [30, 95, 115, 135, 110, 65, 100, 52]
-        elif tipo_reporte == 'evaluaciones':
-          col_widths = [50, 110, 110, 50, 190, 80]  # Ajusta el ancho de la columna 4 (comentarios) a 190
-        else:
-           col_widths = None
+
+    if tipo_reporte == 'estudiantes':
+        col_widths = [25, 75, 90, 95, 80, 50, 75, 50]
+    elif tipo_reporte == 'instructores':
+        col_widths = [25, 75, 90, 95, 80, 50, 75, 50]
+    elif tipo_reporte == 'evaluaciones':
+        col_widths = [35, 90, 90, 40, 195, 90]
+    elif tipo_reporte in ['datos_sensibles_estudiantes', 'datos_sensibles_instructores']:
+        col_widths = [40, 90, 100, 70, 120, 120]
+    elif tipo_reporte == 'inscripciones_historicas':
+        col_widths = [40, 100, 120, 80, 70, 130]
+    elif tipo_reporte == 'pagos_historicos':
+        col_widths = [35, 55, 90, 65, 195, 100]
+    elif tipo_reporte == 'resumen_anual_cursos':
+        col_widths = [120] + [35] * 12
+    else:
+        col_widths = None
+
     t = LongTable(data_rows, colWidths=col_widths, repeatRows=1)
     t.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#312e81")),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-        ('TOPPADDING', (0, 0), (-1, -1), 5),
-        ('LEFTPADDING', (0, 0), (-1, -1), 4),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('LEFTPADDING', (0, 0), (-1, -1), 3),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 3),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#d1d5db")),
     ]))
 
@@ -1462,24 +1529,33 @@ def generar_reporte_pdf(request):
 
     def header_footer(canvas_obj, document):
         canvas_obj.saveState()
-        width_l, height_l = landscape(letter)
+        width_p, height_p = letter
         
+        titulos_map = {
+            'datos_sensibles_estudiantes': 'DATOS SENSIBLES - ESTUDIANTES',
+            'datos_sensibles_instructores': 'DATOS SENSIBLES - INSTRUCTORES',
+            'inscripciones_historicas': 'INSCRIPCIONES HISTÓRICAS',
+            'pagos_historicos': 'PAGOS HISTÓRICOS',
+            'resumen_anual_cursos': 'RESUMEN ANUAL DE INSCRIPCIONES'
+        }
+        titulo_legible = titulos_map.get(tipo_reporte, tipo_reporte.replace('_', ' ').upper())
+
         canvas_obj.setFillColor(colors.HexColor("#312e81"))
-        canvas_obj.rect(0, height_l - 60, width_l, 60, fill=1, stroke=0)
+        canvas_obj.rect(0, height_p - 60, width_p, 60, fill=1, stroke=0)
 
         canvas_obj.setFillColor(colors.white)
-        canvas_obj.setFont("Helvetica-Bold", 14)
-        canvas_obj.drawString(30, height_l - 25, f"SIPEL - REPORTE DE ADMIN ({tipo_reporte.upper()})")
-        canvas_obj.setFont("Helvetica", 8.5)
-        canvas_obj.drawString(30, height_l - 45, f"Rango de Fechas: {fecha_inicio} al {fecha_fin}")
+        canvas_obj.setFont("Helvetica-Bold", 12)
+        canvas_obj.drawString(36, height_p - 25, f"SIPEL - REPORTE DE ADMIN ({titulo_legible})")
+        canvas_obj.setFont("Helvetica", 8)
+        canvas_obj.drawString(36, height_p - 45, f"Rango de Fechas: {fecha_inicio} al {fecha_fin}")
 
         canvas_obj.setStrokeColor(colors.HexColor("#d1d5db"))
         canvas_obj.setLineWidth(1)
-        canvas_obj.line(30, 25, width_l - 30, 25)
+        canvas_obj.line(36, 25, width_p - 36, 25)
         
-        canvas_obj.setFont("Helvetica-Oblique", 7.5)
+        canvas_obj.setFont("Helvetica-Oblique", 7)
         canvas_obj.setFillColor(colors.HexColor("#6b7280"))
-        canvas_obj.drawString(30, 15, "Documento generado automáticamente por el sistema SIPEL.")
+        canvas_obj.drawString(36, 15, "Documento generado automáticamente por el sistema SIPEL.")
         canvas_obj.restoreState()
 
     doc.build(elementos, onFirstPage=header_footer, onLaterPages=header_footer)
@@ -1494,7 +1570,18 @@ def generar_reporte_pdf(request):
     )
 @login_required
 def generar_reporte_excel(request):
-    tipo_reporte = request.GET.get('tipo', 'estudiantes')
+    tipo_reporte = request.GET.get('tipo', request.GET.get('tipo_reporte', 'estudiantes'))
+    
+    # Mapeo de compatibilidad para URLs que utilicen los nombres antiguos
+    equivalencias_tipos = {
+        'fragmentacion_vertical_estudiantes': 'datos_sensibles_estudiantes',
+        'fragmentacion_vertical_instructores': 'datos_sensibles_instructores',
+        'fragmentacion_horizontal_inscripciones': 'inscripciones_historicas',
+        'fragmentacion_horizontal_pagos': 'pagos_historicos',
+        'reporte_pivot': 'resumen_anual_cursos',
+    }
+    tipo_reporte = equivalencias_tipos.get(tipo_reporte, tipo_reporte)
+
     fecha_inicio = request.GET.get('fecha_inicio', '2026-01-01')
     fecha_fin = request.GET.get('fecha_fin', datetime.now().strftime('%Y-%m-%d'))
     
@@ -1505,12 +1592,15 @@ def generar_reporte_excel(request):
         if tipo_reporte == 'estudiantes':
             columnas = ['ID', 'Nombre Completo', 'Documento (Cifrado)', 'Correo', 'Teléfono', 'Dirección', 'Fecha Registro', 'Estado']
             cursor.execute("SELECT estudiante_id, nombre_completo, numero_documento, email, telefono, direccion, fecha_registro, estado FROM Estudiantes WHERE fecha_registro BETWEEN %s AND %s", [fecha_inicio, fecha_fin])
+        
         elif tipo_reporte == 'cursos':
             columnas = ['ID Curso', 'Nombre', 'Categoría', 'Duración (Horas)', 'Costo', 'Estado']
             cursor.execute("SELECT curso_id, nombre_curso, categoria, duracion_horas, costo, estado FROM Cursos")
+
         elif tipo_reporte == 'instructores':
             columnas = ['ID', 'Nombre', 'Especialidad', 'Cédula Prof. (Cifrada)', 'Correo', 'Teléfono', 'Dirección', 'Estado']
-            cursor.execute("SELECT instructor_id, nombre_completo, especialidad, cedula_profesional, email, telefono, direccion, estado FROM Instructores")
+            cursor.execute("SELECT instructor_id, nombre_completo, especialidad, cedula_profesional, email, telefono, direccion, estado FROM Instructores")  
+
         elif tipo_reporte == 'inscripciones':
             columnas = ['Inscripción', 'Estudiante', 'Curso', 'Instructor', 'Folio', 'Fecha', 'Estado', 'Total Pago']
             cursor.execute("""
@@ -1521,6 +1611,7 @@ def generar_reporte_excel(request):
                 LEFT JOIN Instructores ins ON c.instructor_id = ins.instructor_id 
                 WHERE i.fecha_inscripcion BETWEEN %s AND %s
             """, [fecha_inicio, fecha_fin])
+            
         elif tipo_reporte == 'evaluaciones':
             columnas = ['Evaluación ID', 'Estudiante', 'Curso', 'Calificación', 'Comentarios (Cifrados)', 'Fecha Evaluación']
             cursor.execute("""
@@ -1532,9 +1623,40 @@ def generar_reporte_excel(request):
                 JOIN Cursos c ON i.curso_id = c.curso_id 
                 WHERE ev.fecha_evaluacion BETWEEN %s AND %s
             """, [fecha_inicio, fecha_fin])
+            
         elif tipo_reporte == 'pagos':
             columnas = ['Pago ID', 'Estudiante', 'Curso', 'Fecha Pago', 'Monto', 'Referencia', 'Estado']
             cursor.execute("SELECT p.pago_id, e.nombre_completo, c.nombre_curso, p.fecha_pago, p.monto, p.referencia_pago, p.estado FROM Pagos p JOIN Inscripciones i ON p.inscripcion_id = i.inscripcion_id JOIN Estudiantes e ON i.estudiante_id = e.estudiante_id JOIN Cursos c ON i.curso_id = c.curso_id WHERE p.fecha_pago BETWEEN %s AND %s", [fecha_inicio, fecha_fin])
+
+        elif tipo_reporte == 'datos_sensibles_estudiantes':
+            columnas = ['ID Estudiante', 'Nombre Completo', 'Email', 'Teléfono', 'Dirección', 'Documento']
+            cursor.execute("SELECT estudiante_id, nombre_completo, email, telefono, direccion, numero_documento FROM Vista_Estudiantes")
+            
+        elif tipo_reporte == 'datos_sensibles_instructores':
+            columnas = ['ID Instructor', 'Nombre Completo', 'Email', 'Teléfono', 'Dirección', 'Cédula Profesional']
+            cursor.execute("SELECT instructor_id, nombre_completo, email, telefono, direccion, cedula_profesional FROM Instructores")
+
+        elif tipo_reporte == 'inscripciones_historicas':
+            columnas = ['ID Inscripción', 'Estudiante', 'Curso', 'Fecha Inscripción', 'Estado', 'Total Pago']
+            cursor.execute("""
+                SELECT i.inscripcion_id, e.nombre_completo, c.nombre_curso, i.fecha_inscripcion, i.estado, i.total_pago 
+                FROM VW_Inscripciones_Historicas i
+                JOIN Estudiantes e ON i.estudiante_id = e.estudiante_id
+                JOIN Cursos c ON i.curso_id = c.curso_id
+                WHERE i.fecha_inscripcion BETWEEN %s AND %s
+            """, [fecha_inicio, fecha_fin])
+
+        elif tipo_reporte == 'pagos_historicos':
+            columnas = ['Pago ID', 'Inscripción ID', 'Fecha Pago', 'Monto', 'Referencia', 'Estado']
+            cursor.execute("""
+                SELECT pago_id, inscripcion_id, fecha_pago, monto, referencia_pago, estado 
+                FROM VW_Pagos_Historicos
+                WHERE fecha_pago BETWEEN %s AND %s
+            """, [fecha_inicio, fecha_fin])
+            
+        elif tipo_reporte == 'resumen_anual_cursos':
+            columnas = ['Curso', 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+            cursor.execute("SELECT * FROM Vista_Inscripciones_Por_Mes")
 
         raw_resultados = cursor.fetchall()
         
@@ -1542,7 +1664,6 @@ def generar_reporte_excel(request):
         for fila in raw_resultados:
             fila_lista = list(fila)
             
-            # Función auxiliar interna idéntica a la del PDF para compactar valores binarios/cifrados
             def compactar_cifrado(val):
                 if val is None:
                     return ""
@@ -1550,7 +1671,6 @@ def generar_reporte_excel(request):
                     encoded = base64.b64encode(val).decode('utf-8')
                 else:
                     encoded = str(val)
-                
                 if len(encoded) > 40:
                     return encoded[:37] + "..."
                 return encoded
@@ -1558,11 +1678,15 @@ def generar_reporte_excel(request):
             if tipo_reporte == 'estudiantes':
                 fila_lista[2] = compactar_cifrado(cifrar_valor(fila_lista[2]))
             elif tipo_reporte == 'instructores':
-                fila_lista[3] = compactar_cifrado(cifrar_valor(fila_lista[3]))
+                fila_lista[3] = compactar_cifrado(cifrar_valor(fila_lista[3]))   
             elif tipo_reporte == 'evaluaciones':
                 fila_lista[4] = compactar_cifrado(cifrar_valor(fila_lista[4]))
             elif tipo_reporte == 'pagos':
                 fila_lista[5] = compactar_cifrado(cifrar_valor(fila_lista[5]))
+            elif tipo_reporte == 'datos_sensibles_estudiantes':
+                fila_lista[5] = compactar_cifrado(fila_lista[5])
+            elif tipo_reporte == 'datos_sensibles_instructores':
+                fila_lista[5] = compactar_cifrado(fila_lista[5])
                 
             resultados.append(tuple(fila_lista))
 
@@ -1571,7 +1695,7 @@ def generar_reporte_excel(request):
     
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = tipo_reporte.capitalize()
+    ws.title = tipo_reporte.capitalize()[:31]
 
     ws.views.sheetView[0].showGridLines = True
 
@@ -1592,8 +1716,18 @@ def generar_reporte_excel(request):
 
     max_col_letter = get_column_letter(len(columnas))
 
+    # Mapeo de títulos legibles idéntico al PDF
+    titulos_map = {
+        'datos_sensibles_estudiantes': 'DATOS SENSIBLES - ESTUDIANTES',
+        'datos_sensibles_instructores': 'DATOS SENSIBLES - INSTRUCTORES',
+        'inscripciones_historicas': 'INSCRIPCIONES HISTÓRICAS',
+        'pagos_historicos': 'PAGOS HISTÓRICOS',
+        'resumen_anual_cursos': 'RESUMEN ANUAL DE INSCRIPCIONES'
+    }
+    titulo_legible = titulos_map.get(tipo_reporte, tipo_reporte.replace('_', ' ').upper())
+
     # Título principal adaptado al número de columnas
-    ws.append([f"SIPEL - REPORTE DE ADMIN ({tipo_reporte.upper()})"])
+    ws.append([f"SIPEL - REPORTE DE ADMIN ({titulo_legible})"])
     ws.merge_cells(f"A1:{max_col_letter}1")
     cell_title = ws["A1"]
     cell_title.font = Font(name="Helvetica", size=14, bold=True, color="FFFFFF")
@@ -1633,12 +1767,12 @@ def generar_reporte_excel(request):
             cell = ws.cell(row=row_idx, column=col_num)
             cell.border = thin_border
             
-            # Identificar columna cifrada de forma general según el tipo de reporte
             es_cifrado = (
                 (tipo_reporte == 'estudiantes' and col_num == 3) or
                 (tipo_reporte == 'instructores' and col_num == 4) or
                 (tipo_reporte == 'evaluaciones' and col_num == 5) or
-                (tipo_reporte == 'pagos' and col_num == 6)
+                (tipo_reporte == 'pagos' and col_num == 6) or
+                (tipo_reporte in ['datos_sensibles_estudiantes', 'datos_sensibles_instructores'] and col_num == 6)
             )
 
             if es_cifrado:
@@ -1653,16 +1787,20 @@ def generar_reporte_excel(request):
                 
         row_idx += 1
 
-    # Anchos de columna personalizados
+    # Anchos de columna personalizados según el reporte
     if tipo_reporte in ['estudiantes', 'instructores']:
         ws.column_dimensions['A'].width = 8   # ID
         ws.column_dimensions['B'].width = 25  # Nombre Completo
-        ws.column_dimensions['C'].width = 35  # Documento cifrado recortado
+        ws.column_dimensions['C'].width = 35  # Documento / Cédula cifrada
         ws.column_dimensions['D'].width = 25  # Correo
         ws.column_dimensions['E'].width = 15  # Teléfono
         ws.column_dimensions['F'].width = 30  # Dirección
         ws.column_dimensions['G'].width = 20  # Fecha Registro
         ws.column_dimensions['H'].width = 15  # Estado
+    elif tipo_reporte == 'resumen_anual_cursos':
+        ws.column_dimensions['A'].width = 35  # Curso
+        for col_letter_idx in range(2, 14):
+            ws.column_dimensions[get_column_letter(col_letter_idx)].width = 8  # Meses
     else:
         for col in ws.columns:
             max_length = max(len(str(cell.value or '')) for cell in col)
@@ -1683,7 +1821,7 @@ def generar_reporte_excel(request):
     return HttpResponse(
         excel_data,
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        headers={'Content-Disposition': f'attachment; filename="{filename}"'}
+        headers={'Content-Disposition': f'inline; filename="{filename}"'}
     )
 #---------usuarios-----------------
 def gestion_usuarios(request):

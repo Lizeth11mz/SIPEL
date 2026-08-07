@@ -18,19 +18,30 @@
         
         <form method="GET" action="" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-top: 20px; align-items: flex-end;">
             
-            <!-- Selector de Reportes -->
-            <div>
-                <label for="tipo_reporte" style="display: block; margin-bottom: 5px; font-weight: bold;">Seleccionar Reporte:</label>
-                <select name="tipo_reporte" id="tipo_reporte" style="width: 100%; padding: 10px; border-radius: 4px; background: #2c3e50; color: white; border: 1px solid #34495e;">
-                    <option value="estudiantes" {% if tipo_reporte == 'estudiantes' %}selected{% endif %}>Reporte de Estudiantes</option>
-                    <option value="cursos" {% if tipo_reporte == 'cursos' %}selected{% endif %}>Reporte de Cursos</option>
-                    <option value="instructores" {% if tipo_reporte == 'instructores' %}selected{% endif %}>Reporte de Instructores</option>
-                    <option value="inscripciones" {% if tipo_reporte == 'inscripciones' %}selected{% endif %}>Reporte de Inscripciones</option>
-                    <option value="evaluaciones" {% if tipo_reporte == 'evaluaciones' %}selected{% endif %}>Reporte de Evaluaciones</option>
-                    <option value="pagos" {% if tipo_reporte == 'pagos' %}selected{% endif %}>Reporte de Pagos</option>
-                </select>
-            </div>
+           <!-- Selector de Reportes -->
+<div>
+    <label for="tipo_reporte" style="display: block; margin-bottom: 5px; font-weight: bold;">Seleccionar Reporte:</label>
+    <select name="tipo_reporte" id="tipo_reporte" style="width: 100%; padding: 10px; border-radius: 4px; background: #2c3e50; color: white; border: 1px solid #34495e;">
+        <option value="" disabled selected>-- Selecciona un tipo de reporte --</option>
+        
+        <!-- Reportes Base -->
+        <option value="estudiantes" {% if tipo_reporte == 'estudiantes' %}selected{% endif %}>Reporte de Estudiantes</option>
+        <option value="cursos" {% if tipo_reporte == 'cursos' %}selected{% endif %}>Reporte de Cursos</option>
+        <option value="instructores" {% if tipo_reporte == 'instructores' %}selected{% endif %}>Reporte de Instructores</option>
+        <option value="inscripciones" {% if tipo_reporte == 'inscripciones' %}selected{% endif %}>Reporte de Inscripciones</option>
+        <option value="evaluaciones" {% if tipo_reporte == 'evaluaciones' %}selected{% endif %}>Reporte de Evaluaciones</option>
+        <option value="pagos" {% if tipo_reporte == 'pagos' %}selected{% endif %}>Reporte de Pagos</option>
 
+       <!-- Nuevos Reportes de Arquitectura de BD -->
+        <optgroup label="Arquitectura y Fragmentación">
+            <option value="fragmentacion_vertical_estudiantes" {% if tipo_reporte == 'fragmentacion_vertical_estudiantes' %}selected{% endif %}>Fragmentación Vertical (Estudiantes)</option>
+            <option value="fragmentacion_vertical_instructores" {% if tipo_reporte == 'fragmentacion_vertical_instructores' %}selected{% endif %}>Fragmentación Vertical (Instructores)</option>
+            <option value="fragmentacion_horizontal_inscripciones" {% if tipo_reporte == 'fragmentacion_horizontal_inscripciones' %}selected{% endif %}>Fragmentación Horizontal (Inscripciones)</option>
+            <option value="fragmentacion_horizontal_pagos" {% if tipo_reporte == 'fragmentacion_horizontal_pagos' %}selected{% endif %}>Fragmentación Horizontal (Pagos)</option>
+            <option value="reporte_pivot" {% if tipo_reporte == 'reporte_pivot' %}selected{% endif %}>Reporte con Tabla Pivot (Estadísticas cruzadas)</option>
+        </optgroup>
+    </select>
+</div>
             <!-- Fecha Inicial -->
             <div>
                 <label for="fecha_inicio" style="display: block; margin-bottom: 5px; font-weight: bold;">Fecha Inicial:</label>
